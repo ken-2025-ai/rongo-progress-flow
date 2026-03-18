@@ -100,7 +100,7 @@ export function AdminDashboard() {
 
       {/* Booking Queue */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-        <h3 className="label-uppercase text-muted-foreground mb-3">Booking Confirmation Queue</h3>
+        <h3 className="label-uppercase text-container-header mb-3">Booking Confirmation Queue</h3>
         <div className="space-y-2">
           {BOOKING_QUEUE.map((b, i) => (
             <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
