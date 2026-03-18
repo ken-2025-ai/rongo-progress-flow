@@ -30,8 +30,7 @@ const UPCOMING = [
   { student: "Mercy Chebet", type: "Final Viva", date: "April 10", venue: "PG Block 301" },
 ];
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } } };
+import { containerVariants as container, itemVariants as item } from "@/lib/animations";
 
 export function DeanDashboard() {
   const maxCount = Math.max(...PIPELINE_DISTRIBUTION.map(p => p.count));

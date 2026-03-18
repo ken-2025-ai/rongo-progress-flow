@@ -14,8 +14,7 @@ const PENDING_REPORTS = [
   { student: "Kevin Odhiambo", type: "Q1 2026 Report", submitted: "March 15, 2026" },
 ];
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } } };
+import { containerVariants as container, itemVariants as item } from "@/lib/animations";
 
 const STATUS_MAP: Record<string, { label: string; classes: string }> = {
   "on-track": { label: "On Track", classes: "bg-primary/10 text-primary" },
