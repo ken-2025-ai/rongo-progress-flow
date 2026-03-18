@@ -119,7 +119,7 @@ export function DeanDashboard() {
         {/* Overdue Students */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="label-uppercase text-muted-foreground">Overdue Students</h3>
+            <h3 className="label-uppercase text-container-header">Overdue Students</h3>
           </div>
           <table className="w-full">
             <thead>
