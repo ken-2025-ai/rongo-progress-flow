@@ -60,7 +60,7 @@ export function DeanDashboard() {
       <div className="grid grid-cols-2 gap-4">
         {/* Pipeline Distribution */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-4">Pipeline Stage Distribution</h3>
+          <h3 className="label-uppercase text-container-header mb-4">Pipeline Stage Distribution</h3>
           <div className="space-y-2">
             {PIPELINE_DISTRIBUTION.map((p, i) => (
               <div key={i} className="flex items-center gap-3">
