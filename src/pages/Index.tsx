@@ -1,16 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useRole } from "@/contexts/RoleContext";
+import { AppLayout } from "@/components/AppLayout";
+import { StudentDashboard } from "@/components/dashboards/StudentDashboard";
+import { SupervisorDashboard } from "@/components/dashboards/SupervisorDashboard";
+import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
+import { DeanDashboard } from "@/components/dashboards/DeanDashboard";
+import { PanelDashboard } from "@/components/dashboards/PanelDashboard";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
+const DASHBOARD_TITLES = {
+  student: "My Dashboard",
+  supervisor: "Supervisor Dashboard",
+  panel: "Assessment Panel",
+  admin: "Admin Overview",
+  dean: "Dean's Command Center",
 };
 
-const Index = PlaceholderIndex;
+export default function Index() {
+  const { currentRole, user } = useRole();
 
-export default Index;
+  return (
+    <AppLayout>
+      <div className="mb-5">
+        <h1 className="text-xl font-semibold text-foreground">{DASHBOARD_TITLES[currentRole]}</h1>
+        <p className="text-sm text-muted-foreground">Welcome back, {user.name}</p>
+      </div>
+
+      {currentRole === "student" && <StudentDashboard />}
+      {currentRole === "supervisor" && <SupervisorDashboard />}
+      {currentRole === "admin" && <AdminDashboard />}
+      {currentRole === "dean" && <DeanDashboard />}
+      {currentRole === "panel" && <PanelDashboard />}
+    </AppLayout>
+  );
+}
