@@ -49,7 +49,7 @@ export function AdminDashboard() {
       {/* Students Table */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="label-uppercase text-muted-foreground">All Students</h3>
+          <h3 className="label-uppercase text-container-header">All Students</h3>
           <div className="flex gap-2">
             <select className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground">
               <option>All Stages</option>
