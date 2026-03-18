@@ -4,6 +4,7 @@ import {
   LayoutDashboard, GitBranch, CalendarDays, ClipboardCheck,
   Sparkles, FileBarChart, Bell, Shield, Settings, LogOut, User, BookOpen, Clock, GraduationCap, FileText, Users
 } from "lucide-react";
+import rongoLogo from "@/assets/rongo-logo.png";
 
 interface NavSection {
   label: string;
@@ -44,9 +45,7 @@ export function AppSidebar() {
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent font-bold text-accent-foreground text-sm">
-          RU
-        </div>
+        <img src={rongoLogo} alt="Rongo University" className="h-9 w-9 object-contain" />
         <div className="flex flex-col">
           <span className="text-xs font-bold leading-none text-sidebar-foreground">RONGO</span>
           <span className="text-[10px] leading-none text-muted-foreground">UNIVERSITY</span>
