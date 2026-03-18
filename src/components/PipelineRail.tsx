@@ -2,14 +2,11 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
 const STAGES = [
-  "Proposal",
-  "Ethics",
-  "Data Collection",
-  "First Draft",
-  "Final Submission",
-  "Viva Voce",
-  "Corrections",
-  "Graduation",
+  "Department Seminar",
+  "School Seminar",
+  "PG Examination",
+  "Corrections Stage",
+  "Final Clearance",
 ];
 
 interface PipelineRailProps {

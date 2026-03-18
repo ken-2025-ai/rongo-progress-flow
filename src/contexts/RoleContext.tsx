@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
-export type UserRole = "student" | "supervisor" | "panel" | "admin" | "dean";
+export type UserRole = "student" | "supervisor" | "panel" | "admin" | "school_admin" | "dean";
 
 interface RoleUser {
   name: string;
@@ -14,6 +14,7 @@ const DEMO_USERS: Record<UserRole, RoleUser> = {
   supervisor: { name: "Dr. Amina Wanjiku", role: "supervisor", avatar: "AW", department: "Computer Science" },
   panel: { name: "Prof. Kibet Langat", role: "panel", avatar: "KL", department: "Information Technology" },
   admin: { name: "Janet Achieng", role: "admin", avatar: "JA", department: "PG Administration" },
+  school_admin: { name: "Prof. Oduor", role: "school_admin", avatar: "PO", department: "School Coordinator" },
   dean: { name: "Dr. Silas Nyabuto", role: "dean", avatar: "SN", department: "School of Postgraduate Studies" },
 };
 
@@ -21,7 +22,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
   student: "Student",
   supervisor: "Supervisor",
   panel: "Panel Member",
-  admin: "Administrator",
+  admin: "Dept Coordinator",
+  school_admin: "School Admin",
   dean: "PG Dean",
 };
 
