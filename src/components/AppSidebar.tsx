@@ -54,7 +54,7 @@ export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onTogg
         {!collapsed && (
           <div className="flex flex-col">
             <span className="text-xs font-bold leading-none text-sidebar-foreground">RONGO</span>
-            <span className="text-[10px] leading-none text-sidebar-muted-foreground opacity-70">UNIVERSITY</span>
+            <span className="text-[10px] leading-none text-sidebar-foreground">UNIVERSITY</span>
           </div>
         )}
       </div>
