@@ -65,7 +65,7 @@ export function StudentDashboard() {
       <div className="grid grid-cols-2 gap-4">
         {/* Upcoming Presentations */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-3">Upcoming Presentations</h3>
+          <h3 className="label-uppercase text-container-header mb-3">Upcoming Presentations</h3>
           <div className="space-y-2">
             {UPCOMING_PRESENTATIONS.map((pres, i) => (
               <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
@@ -87,7 +87,7 @@ export function StudentDashboard() {
 
         {/* Corrections Checklist */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-3">
+          <h3 className="label-uppercase text-container-header mb-3">
             Corrections Checklist
             <span className="ml-2 text-foreground tabular-nums">
               {CORRECTIONS.filter(c => c.done).length}/{CORRECTIONS.length}
@@ -115,7 +115,7 @@ export function StudentDashboard() {
 
       {/* Quick Actions */}
       <motion.div variants={item} className="flex gap-3">
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
+        <Button className="bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
           <CalendarIcon className="h-4 w-4 mr-2" />
           Request Presentation
         </Button>

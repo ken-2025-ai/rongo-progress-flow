@@ -48,7 +48,7 @@ export function SupervisorDashboard() {
       {/* Students Table */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="label-uppercase text-muted-foreground">Student Stage Overview</h3>
+          <h3 className="label-uppercase text-container-header">Student Stage Overview</h3>
           <span className="text-xs text-muted-foreground">Sorted by days in stage ↓</span>
         </div>
         <table className="w-full">
@@ -85,7 +85,7 @@ export function SupervisorDashboard() {
 
       {/* Pending Reports */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-        <h3 className="label-uppercase text-muted-foreground mb-3">Pending Quarterly Reports</h3>
+        <h3 className="label-uppercase text-container-header mb-3">Pending Quarterly Reports</h3>
         <div className="space-y-2">
           {PENDING_REPORTS.map((r, i) => (
             <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
@@ -94,7 +94,7 @@ export function SupervisorDashboard() {
                 <p className="text-xs text-muted-foreground">{r.type} · Submitted {r.submitted}</p>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
+                <button className="rounded-md bg-success px-3 py-1 text-xs font-semibold text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
                   Approve
                 </button>
                 <button className="rounded-md border border-border px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-all active:scale-[0.98]">

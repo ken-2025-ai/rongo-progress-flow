@@ -60,7 +60,7 @@ export function DeanDashboard() {
       <div className="grid grid-cols-2 gap-4">
         {/* Pipeline Distribution */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-4">Pipeline Stage Distribution</h3>
+          <h3 className="label-uppercase text-container-header mb-4">Pipeline Stage Distribution</h3>
           <div className="space-y-2">
             {PIPELINE_DISTRIBUTION.map((p, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -81,7 +81,7 @@ export function DeanDashboard() {
 
         {/* Approval Chain Visualizer */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-4">Approval Chain — Omondi Okech</h3>
+          <h3 className="label-uppercase text-container-header mb-4">Approval Chain — Omondi Okech</h3>
           <div className="space-y-0">
             {APPROVAL_CHAIN.map((a, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -119,7 +119,7 @@ export function DeanDashboard() {
         {/* Overdue Students */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="label-uppercase text-muted-foreground">Overdue Students</h3>
+            <h3 className="label-uppercase text-container-header">Overdue Students</h3>
           </div>
           <table className="w-full">
             <thead>
@@ -146,7 +146,7 @@ export function DeanDashboard() {
 
         {/* Upcoming Presentations */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-3">Upcoming Presentations</h3>
+          <h3 className="label-uppercase text-container-header mb-3">Upcoming Presentations</h3>
           <div className="space-y-2">
             {UPCOMING.map((u, i) => (
               <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">

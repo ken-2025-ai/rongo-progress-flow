@@ -49,7 +49,7 @@ export function AdminDashboard() {
       {/* Students Table */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="label-uppercase text-muted-foreground">All Students</h3>
+          <h3 className="label-uppercase text-container-header">All Students</h3>
           <div className="flex gap-2">
             <select className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground">
               <option>All Stages</option>
@@ -100,7 +100,7 @@ export function AdminDashboard() {
 
       {/* Booking Queue */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-        <h3 className="label-uppercase text-muted-foreground mb-3">Booking Confirmation Queue</h3>
+        <h3 className="label-uppercase text-container-header mb-3">Booking Confirmation Queue</h3>
         <div className="space-y-2">
           {BOOKING_QUEUE.map((b, i) => (
             <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
@@ -109,7 +109,7 @@ export function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">Requested {b.requested} · Preferred {b.preferred}</p>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">Approve</button>
+                <button className="rounded-md bg-success px-3 py-1 text-xs font-semibold text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">Approve</button>
                 <button className="rounded-md border border-border px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-all active:scale-[0.98]">Reschedule</button>
               </div>
             </div>

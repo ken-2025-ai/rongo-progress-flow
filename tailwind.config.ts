@@ -66,6 +66,14 @@ export default {
           warning: "hsl(var(--status-warning))",
           overdue: "hsl(var(--status-overdue))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        "container-header": {
+          DEFAULT: "hsl(var(--container-header))",
+          foreground: "hsl(var(--container-header-foreground))",
+        },
         topbar: {
           DEFAULT: "hsl(var(--topbar))",
           foreground: "hsl(var(--topbar-foreground))",

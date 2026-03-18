@@ -48,7 +48,7 @@ export function PanelDashboard() {
 
       {/* Rubric */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4 space-y-4">
-        <h3 className="label-uppercase text-muted-foreground">Scoring Rubric</h3>
+        <h3 className="label-uppercase text-container-header">Scoring Rubric</h3>
         {CATEGORIES.map((cat, i) => (
           <div key={i} className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -73,7 +73,7 @@ export function PanelDashboard() {
 
       {/* Submit */}
       <motion.div variants={item} className="flex gap-3">
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
+        <Button className="bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
           <ClipboardCheck className="h-4 w-4 mr-2" />
           Submit Evaluation
         </Button>
