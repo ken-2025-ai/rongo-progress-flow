@@ -22,7 +22,7 @@ export function PipelineRail({ currentStage, completedStages }: PipelineRailProp
 
   return (
     <div className="card-shadow rounded-lg bg-card p-5">
-      <h3 className="label-uppercase text-muted-foreground mb-4">Research Progress Pipeline</h3>
+      <h3 className="label-uppercase text-muted-foreground mb-4">Progress</h3>
       <div className="flex items-center gap-0">
         {STAGES.map((stage, i) => {
           const isCompleted = completed.includes(i);
