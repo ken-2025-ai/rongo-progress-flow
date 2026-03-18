@@ -73,7 +73,7 @@ export function PanelDashboard() {
 
       {/* Submit */}
       <motion.div variants={item} className="flex gap-3">
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
+        <Button className="bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
           <ClipboardCheck className="h-4 w-4 mr-2" />
           Submit Evaluation
         </Button>

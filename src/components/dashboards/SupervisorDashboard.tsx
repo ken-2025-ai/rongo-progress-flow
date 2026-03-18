@@ -94,7 +94,7 @@ export function SupervisorDashboard() {
                 <p className="text-xs text-muted-foreground">{r.type} · Submitted {r.submitted}</p>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
+                <button className="rounded-md bg-success px-3 py-1 text-xs font-semibold text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
                   Approve
                 </button>
                 <button className="rounded-md border border-border px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-all active:scale-[0.98]">
