@@ -48,7 +48,7 @@ export function SupervisorDashboard() {
       {/* Students Table */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="label-uppercase text-muted-foreground">Student Stage Overview</h3>
+          <h3 className="label-uppercase text-container-header">Student Stage Overview</h3>
           <span className="text-xs text-muted-foreground">Sorted by days in stage ↓</span>
         </div>
         <table className="w-full">
