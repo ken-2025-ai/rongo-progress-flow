@@ -81,7 +81,7 @@ export function DeanDashboard() {
 
         {/* Approval Chain Visualizer */}
         <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-muted-foreground mb-4">Approval Chain — Omondi Okech</h3>
+          <h3 className="label-uppercase text-container-header mb-4">Approval Chain — Omondi Okech</h3>
           <div className="space-y-0">
             {APPROVAL_CHAIN.map((a, i) => (
               <div key={i} className="flex items-start gap-3">
