@@ -40,16 +40,16 @@
     --status-warning: 38 92% 50%;
     --status-overdue: 0 72% 51%;
 
-    /* Sidebar: light blue */
-    --sidebar-background: 210 60% 95%;
-    --sidebar-foreground: 213 60% 20%;
-    --sidebar-primary: 213 60% 40%;
+    /* Sidebar: blue */
+    --sidebar-background: 213 55% 32%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 210 60% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 50% 88%;
-    --sidebar-accent-foreground: 213 60% 25%;
-    --sidebar-border: 210 40% 85%;
-    --sidebar-ring: 213 60% 45%;
-    --sidebar-muted: 210 30% 90%;
+    --sidebar-accent: 213 50% 38%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 213 45% 28%;
+    --sidebar-ring: 210 60% 70%;
+    --sidebar-muted: 213 40% 36%;
 
     /* Section header gold */
     --section-header: 42 60% 50%;
