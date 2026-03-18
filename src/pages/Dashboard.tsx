@@ -5,12 +5,19 @@ import { SupervisorDashboard } from "@/components/dashboards/SupervisorDashboard
 import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 import { DeanDashboard } from "@/components/dashboards/DeanDashboard";
 import { PanelDashboard } from "@/components/dashboards/PanelDashboard";
+import { SuperAdminDashboard } from "@/components/dashboards/SuperAdminDashboard";
+import { StudentRegistry } from "@/components/dashboards/StudentRegistry";
+import { StaffRegistry } from "@/components/dashboards/StaffRegistry";
 import { useLocation } from "react-router-dom";
 import { ResearchJourney } from "@/components/student/ResearchJourney";
 import { SeminarBooking } from "@/components/student/SeminarBooking";
 import { SeminarFeedback } from "@/components/student/SeminarFeedback";
 import { SubmitThesis } from "@/components/student/SubmitThesis";
 import { ExaminationStatus } from "@/components/student/ExaminationStatus";
+import { AcademicProfile } from "@/components/student/AcademicProfile";
+import { ProgressReportsSubmission } from "@/components/student/ProgressReportsSubmission";
+import { AcademicUpdates } from "@/components/shared/AcademicUpdates";
+import { AccountSettings } from "@/components/shared/AccountSettings";
 import { MyStudents } from "@/components/supervisor/MyStudents";
 import { SeminarReadiness } from "@/components/supervisor/SeminarReadiness";
 import { CorrectionsVerification } from "@/components/supervisor/CorrectionsVerification";
@@ -92,12 +99,24 @@ const PANEL_TITLES: Record<string, string> = {
   "/submitted-evaluations": "Submitted Evaluations",
 };
 
+const SUPER_ADMIN_TITLES: Record<string, string> = {
+  "/": "System Governance Overview",
+  "/student-registry": "Student Registry Engine",
+  "/staff-registry": "Staff Role Provisioning",
+  "/academic-structure": "Platform Academic Structure",
+  "/role-assignment": "Authorization Console",
+  "/workflow-monitor": "Global Workflow Monitor",
+  "/system-logs": "Infrastructure Audit Logs",
+  "/settings": "Global Admin Settings",
+};
+
 const ROLE_SPECIFIC_TITLES = {
   supervisor: "Supervisor Command Center",
   panel: "Assessment Panel Briefing",
   admin: "Department Coordinator Overview",
   school_admin: "School Coordinator Overview",
   dean: "PG Dean Institutional Overview",
+  super_admin: "System Governance Portal",
 };
 
 export default function Index() {
@@ -112,6 +131,7 @@ export default function Index() {
     if (currentRole === "school_admin") return SCHOOL_ADMIN_TITLES[path] || "School Dashboard";
     if (currentRole === "dean") return DEAN_TITLES[path] || "PG Dean Dashboard";
     if (currentRole === "panel") return PANEL_TITLES[path] || "Evaluation Panel";
+    if (currentRole === "super_admin") return SUPER_ADMIN_TITLES[path] || "System Governance Portal";
     
     return ROLE_SPECIFIC_TITLES[currentRole as keyof typeof ROLE_SPECIFIC_TITLES] || "Dashboard";
   };
@@ -120,12 +140,16 @@ export default function Index() {
     if (currentRole === "student") {
       switch (path) {
         case "/": return <StudentDashboard />;
+        case "/profile": return <AcademicProfile />;
         case "/journey": return <ResearchJourney />;
         case "/booking": return <SeminarBooking />;
         case "/feedback": return <SeminarFeedback />;
         case "/submit-thesis": return <SubmitThesis />;
         case "/examination-status": return <ExaminationStatus />;
         case "/corrections": return <SeminarFeedback />; 
+        case "/reports": return <ProgressReportsSubmission />;
+        case "/updates": return <AcademicUpdates />;
+        case "/settings": return <AccountSettings />;
         default: return (
            <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl bg-muted/20">
              <div className="p-4 bg-primary/10 rounded-full text-primary mb-4"><span className="text-4xl">🚀</span></div>
@@ -143,7 +167,25 @@ export default function Index() {
          case "/readiness": return <SeminarReadiness />;
          case "/verification": return <CorrectionsVerification />;
          case "/reports-review": return <ProgressReportsReview />;
-         default: return <SupervisorDashboard />;
+         
+         // Shared Components
+         case "/profile": return <AcademicProfile />;
+         case "/journey": return <ResearchJourney />;
+         case "/feedback": return <SeminarFeedback />;
+         case "/corrections": return <SeminarFeedback />;
+         case "/reports": return <ProgressReportsSubmission />;
+         case "/submit-thesis": return <SubmitThesis />;
+         case "/examination-status": return <ExaminationStatus />;
+         case "/updates": return <AcademicUpdates />;
+         case "/settings": return <AccountSettings />;
+         
+         default: return (
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl bg-muted/20">
+             <div className="p-4 bg-primary/10 rounded-full text-primary mb-4"><span className="text-4xl">🚀</span></div>
+             <h2 className="text-xl font-bold text-foreground">Section In Final Polish</h2>
+             <p className="text-muted-foreground mt-2 max-w-md">Our architects are putting the final touches on <span className="font-bold text-foreground italic">{DASHBOARD_TITLES[path] || SUPERVISOR_TITLES[path]}</span>.</p>
+           </div>
+         );
        }
     }
 
@@ -188,9 +230,23 @@ export default function Index() {
        }
     }
 
+    if (currentRole === "super_admin") {
+       switch (path) {
+         case "/": return <SuperAdminDashboard />;
+         case "/student-registry": return <StudentRegistry />;
+         case "/staff-registry": return <StaffRegistry />;
+         case "/settings": return <AccountSettings />;
+         default: return (
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed border-red-500/30 rounded-3xl bg-red-950/10">
+             <div className="p-4 bg-red-500/20 rounded-full text-red-500 mb-4"><span className="text-4xl">⚙️</span></div>
+             <h2 className="text-xl font-bold text-foreground">Governance Node Offline</h2>
+             <p className="text-muted-foreground mt-2 max-w-md">The <span className="font-bold text-red-400 italic">{SUPER_ADMIN_TITLES[path]}</span> module is currently locked pending senior architectural approval.</p>
+           </div>
+         );
+       }
+    }
+
     // Fallback for roles not explicitly handled above, or default dashboard
-    // The original code had a switch here, but with the new panel if-block,
-    // only the default case remains if panel is handled above.
     return <StudentDashboard />;
   };
 

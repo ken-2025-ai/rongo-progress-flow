@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Index.tsx";
+import SuperAdminLogin from "./pages/SuperAdminLogin.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/system-admin" element={<SuperAdminLogin />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -66,6 +68,14 @@ const AppRoutes = () => {
       <Route path="/evaluations" element={<Dashboard />} />
       <Route path="/panel-schedule" element={<Dashboard />} />
       <Route path="/submitted-evaluations" element={<Dashboard />} />
+
+      {/* Super Admin specific routes */}
+      <Route path="/student-registry" element={<Dashboard />} />
+      <Route path="/staff-registry" element={<Dashboard />} />
+      <Route path="/academic-structure" element={<Dashboard />} />
+      <Route path="/role-assignment" element={<Dashboard />} />
+      <Route path="/workflow-monitor" element={<Dashboard />} />
+      <Route path="/system-logs" element={<Dashboard />} />
 
       {/* Fallback */}
       <Route path="/login" element={<Navigate to="/" replace />} />

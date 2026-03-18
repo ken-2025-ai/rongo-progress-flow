@@ -3,7 +3,8 @@ import { useRole, type UserRole } from "@/contexts/RoleContext";
 import { NavLink } from "@/components/NavLink";
 import { 
   LayoutDashboard, GitBranch, CalendarDays, ClipboardCheck,
-  Sparkles, FileBarChart, Bell, Shield, Settings, LogOut, User, Users, ChevronLeft, ChevronRight
+  Sparkles, FileBarChart, Bell, Shield, Settings, LogOut, User, Users, ChevronLeft, ChevronRight,
+  UserPlus, Briefcase, Building2, Key, Activity, Server
 } from "lucide-react";
 import rongoLogo from "@/assets/rongo-logo.png";
 
@@ -84,51 +85,77 @@ const NAV_SECTIONS: NavSection[] = [
       { title: "Account Settings", url: "/settings", icon: Settings, roles: ["student", "supervisor", "panel", "admin", "school_admin", "dean"] },
     ],
   },
+  {
+    label: "SYSTEM GOVERNANCE (SUPER ADMIN)",
+    items: [
+      { title: "System Overview", url: "/", icon: LayoutDashboard, roles: ["super_admin"] },
+      { title: "Student Registry", url: "/student-registry", icon: UserPlus, roles: ["super_admin"] },
+      { title: "Staff Registry", url: "/staff-registry", icon: Briefcase, roles: ["super_admin"] },
+      { title: "Academic Structure", url: "/academic-structure", icon: Building2, roles: ["super_admin"] },
+      { title: "Role Assignment", url: "/role-assignment", icon: Key, roles: ["super_admin"] },
+      { title: "Workflow Monitor", url: "/workflow-monitor", icon: Activity, roles: ["super_admin"] },
+      { title: "System Logs", url: "/system-logs", icon: Server, roles: ["super_admin"] },
+      { title: "Global Settings", url: "/settings", icon: Settings, roles: ["super_admin"] },
+    ],
+  },
 ];
 
-export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export function AppSidebar({ 
+  collapsed, 
+  onToggle, 
+  mobileMenuOpen, 
+  setMobileMenuOpen 
+}: { 
+  collapsed: boolean; 
+  onToggle: () => void;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (val: boolean) => void;
+}) {
   const { currentRole } = useRole();
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 ${
-        collapsed ? "w-16" : "w-60"
+      className={`fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar border-r border-sidebar-border transition-transform overflow-hidden md:translate-x-0 ${
+        mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+      } ${
+        collapsed ? "md:w-16" : "w-64 md:w-60"
       }`}
     >
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
+      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4 flex-shrink-0">
         <img src={rongoLogo} alt="Rongo University" className="h-9 w-9 shrink-0 object-contain" />
-        {!collapsed && (
+        {(!collapsed || mobileMenuOpen) && (
           <div className="flex flex-col">
             <span className="text-xs font-bold leading-none text-container-header">RONGO</span>
-            <span className="text-[10px] leading-none text-sidebar-foreground">UNIVERSITY</span>
+            <span className="text-[10px] leading-none text-sidebar-foreground mt-0.5">UNIVERSITY</span>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-6 md:space-y-4 pb-20">
         {NAV_SECTIONS.map(section => {
           const filteredItems = section.items.filter(item => item.roles.includes(currentRole));
           if (filteredItems.length === 0) return null;
           return (
             <div key={section.label}>
-              {!collapsed && (
-                <p className="label-uppercase text-sidebar-primary px-2 mb-1.5">{section.label}</p>
+              {(!collapsed || mobileMenuOpen) && (
+                <p className="text-[10px] font-bold text-sidebar-primary px-2 mb-2 tracking-widest uppercase opacity-70">{section.label}</p>
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {filteredItems.map(item => (
                   <NavLink
                     key={item.url}
                     to={item.url}
                     end={item.url === "/"}
-                    className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-sidebar-foreground font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
-                      collapsed ? "justify-center" : ""
+                    onClick={() => setMobileMenuOpen?.(false)}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-sidebar-foreground font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
+                      (collapsed && !mobileMenuOpen) ? "md:justify-center px-0 py-2.5" : ""
                     }`}
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-sm"
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>{item.title}</span>}
+                    {(!collapsed || mobileMenuOpen) && <span>{item.title}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -137,10 +164,10 @@ export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onTogg
         })}
       </nav>
 
-      {/* Collapse toggle */}
+      {/* Collapse toggle (Desktop only) */}
       <button
         onClick={onToggle}
-        className="flex h-10 items-center justify-center border-t border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        className="hidden md:flex h-12 items-center justify-center border-t border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0 w-full"
       >
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>

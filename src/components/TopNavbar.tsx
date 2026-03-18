@@ -5,14 +5,17 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-export function TopNavbar() {
+export function TopNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const { currentRole, setCurrentRole, user, roleLabel, allRoles, logout } = useRole();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 bg-topbar text-topbar-foreground px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 bg-topbar text-topbar-foreground px-4 md:px-6">
       {/* Hamburger */}
-      <button className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 transition-colors">
-        <Menu className="h-5 w-5" />
+      <button 
+        className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-white/10 transition-colors md:hidden -ml-2"
+        onClick={onMobileMenuToggle}
+      >
+        <Menu className="h-6 w-6" />
       </button>
 
       <div className="flex-1" />

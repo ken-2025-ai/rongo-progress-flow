@@ -14,27 +14,38 @@ export function SeminarBooking() {
     { type: "School Seminar", date: "April 16, 2026", time: "09:00 AM", location: "Main Auditorium", available: true },
   ];
 
+  // Calculate the date exactly one week from now to enforce the booking policy
+  const oneWeekFromNow = new Date();
+  oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 6); // At least 7 days/next week
+  oneWeekFromNow.setHours(0, 0, 0, 0);
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Calendar Selection */}
-        <div className="card-shadow bg-card rounded-xl p-6 border border-border">
+        <div className="card-shadow bg-card rounded-xl p-6 border border-border flex flex-col">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <CalendarDays className="text-primary" size={20} />
             Select Presentation Date
           </h3>
-          <div className="bg-background/40 p-3 rounded-xl border border-border/40">
+          <div className="bg-background/40 p-3 rounded-xl border border-border/40 mx-auto w-fit">
              <Calendar
                 mode="single"
                 selected={date}
                 onSelect={setDate}
                 className="rounded-md mx-auto"
-                disabled={(date) => date < new Date() || date.getDay() !== 4} 
+                disabled={(date) => date < oneWeekFromNow || date.getDay() !== 4} 
              />
           </div>
-          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-4 text-center">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-6 text-center">
             Seminars are only held on <span className="text-primary">Thursdays</span>
           </p>
+          <div className="mt-4 p-3 bg-secondary/10 rounded-lg border border-secondary/20 flex gap-3 text-secondary w-full">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <p className="text-[11px] leading-tight font-medium">
+              <strong>University Policy:</strong> Seminar presentations must be booked <strong>strictly at least one week in advance</strong> to allow for panel allocation. Same-week bookings are system-locked.
+            </p>
+          </div>
         </div>
 
         {/* Available Slots */}
