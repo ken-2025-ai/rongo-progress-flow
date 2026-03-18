@@ -53,7 +53,7 @@ export function AppSidebar({ collapsed, onToggle }: { collapsed: boolean; onTogg
         <img src={rongoLogo} alt="Rongo University" className="h-9 w-9 shrink-0 object-contain" />
         {!collapsed && (
           <div className="flex flex-col">
-            <span className="text-xs font-bold leading-none text-sidebar-foreground">RONGO</span>
+            <span className="text-xs font-bold leading-none text-container-header">RONGO</span>
             <span className="text-[10px] leading-none text-sidebar-foreground">UNIVERSITY</span>
           </div>
         )}
