@@ -1,12 +1,12 @@
 import { useRole, ROLE_LABELS, type UserRole } from "@/contexts/RoleContext";
-import { Bell, Search, ChevronDown, Menu } from "lucide-react";
+import { Bell, Search, ChevronDown, Menu, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
 export function TopNavbar() {
-  const { currentRole, setCurrentRole, user, roleLabel, allRoles } = useRole();
+  const { currentRole, setCurrentRole, user, roleLabel, allRoles, logout } = useRole();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 bg-topbar text-topbar-foreground px-6">
@@ -37,12 +37,20 @@ export function TopNavbar() {
             <ChevronDown className="h-3.5 w-3.5 text-white/60" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-56">
+          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Switch Role
+          </div>
           {allRoles.map(role => (
-            <DropdownMenuItem key={role} onClick={() => setCurrentRole(role)}>
+            <DropdownMenuItem key={role} onClick={() => setCurrentRole(role)} className="cursor-pointer">
               {ROLE_LABELS[role]}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => logout()} className="text-destructive focus:text-destructive cursor-pointer">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

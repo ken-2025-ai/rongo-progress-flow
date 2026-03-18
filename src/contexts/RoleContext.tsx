@@ -31,12 +31,27 @@ interface RoleContextType {
   user: RoleUser;
   roleLabel: string;
   allRoles: UserRole[];
+  isAuthenticated: boolean;
+  login: (role: UserRole) => void;
+  logout: () => void;
 }
 
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
+  // In a real app, this would be handled by Auth (Supabase/Firebase)
+  // For this demo, we'll use a local state.
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentRole, setCurrentRole] = useState<UserRole>("student");
+
+  const login = (role: UserRole) => {
+    setCurrentRole(role);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
 
   return (
     <RoleContext.Provider
@@ -46,6 +61,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         user: DEMO_USERS[currentRole],
         roleLabel: ROLE_LABELS[currentRole],
         allRoles: Object.keys(DEMO_USERS) as UserRole[],
+        isAuthenticated,
+        login,
+        logout,
       }}
     >
       {children}
