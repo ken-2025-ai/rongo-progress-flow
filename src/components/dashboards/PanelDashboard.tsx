@@ -48,7 +48,7 @@ export function PanelDashboard() {
 
       {/* Rubric */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4 space-y-4">
-        <h3 className="label-uppercase text-muted-foreground">Scoring Rubric</h3>
+        <h3 className="label-uppercase text-container-header">Scoring Rubric</h3>
         {CATEGORIES.map((cat, i) => (
           <div key={i} className="space-y-1.5">
             <div className="flex items-center justify-between">
