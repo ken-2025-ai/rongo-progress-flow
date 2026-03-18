@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
-import Index from "./pages/Index.tsx";
-import Login from "./pages/Login.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import Login from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -17,12 +17,10 @@ const AppRoutes = () => {
     <Routes>
       <Route 
         path="/" 
-        element={isAuthenticated ? <Index /> : <Navigate to="/login" replace />} 
+        element={isAuthenticated ? <Dashboard /> : <Login />} 
       />
-      <Route 
-        path="/login" 
-        element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} 
-      />
+      {/* Redirect /login to index as login is now at index */}
+      <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
