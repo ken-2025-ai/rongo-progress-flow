@@ -85,7 +85,7 @@ export function SupervisorDashboard() {
 
       {/* Pending Reports */}
       <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-        <h3 className="label-uppercase text-muted-foreground mb-3">Pending Quarterly Reports</h3>
+        <h3 className="label-uppercase text-container-header mb-3">Pending Quarterly Reports</h3>
         <div className="space-y-2">
           {PENDING_REPORTS.map((r, i) => (
             <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
