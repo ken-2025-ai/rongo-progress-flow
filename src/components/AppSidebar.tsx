@@ -22,7 +22,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "ACADEMICS",
     items: [
-      { title: "Pipeline Tracker", url: "/pipeline", icon: GitBranch, roles: ["student", "supervisor", "dean"] },
+      { title: "My Progress", url: "/pipeline", icon: GitBranch, roles: ["student", "supervisor", "dean"] },
       { title: "Presentation Booking", url: "/presentations", icon: CalendarDays, roles: ["student", "admin"] },
       { title: "Assessment Rubric", url: "/assessment", icon: ClipboardCheck, roles: ["panel", "supervisor"] },
       { title: "AI Corrections", url: "/corrections", icon: Sparkles, roles: ["student", "supervisor", "panel"] },
