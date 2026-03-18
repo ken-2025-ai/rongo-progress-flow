@@ -8,6 +8,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <AppSidebar />
       <div className="flex flex-1 flex-col pl-60">
         <TopNavbar />
+        {/* Gold accent bar */}
+        <div className="h-1 bg-accent w-full" />
         <main className="flex-1 p-6">
           {children}
         </main>

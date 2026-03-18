@@ -66,6 +66,10 @@ export default {
           warning: "hsl(var(--status-warning))",
           overdue: "hsl(var(--status-overdue))",
         },
+        topbar: {
+          DEFAULT: "hsl(var(--topbar))",
+          foreground: "hsl(var(--topbar-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -82,9 +86,9 @@ export default {
           to: { height: "0" },
         },
         "pulse-ring": {
-          "0%": { boxShadow: "0 0 0 0 hsl(44 53% 55% / 0.6)" },
-          "70%": { boxShadow: "0 0 0 6px hsl(44 53% 55% / 0)" },
-          "100%": { boxShadow: "0 0 0 0 hsl(44 53% 55% / 0)" },
+          "0%": { boxShadow: "0 0 0 0 hsl(42 53% 55% / 0.6)" },
+          "70%": { boxShadow: "0 0 0 6px hsl(42 53% 55% / 0)" },
+          "100%": { boxShadow: "0 0 0 0 hsl(42 53% 55% / 0)" },
         },
       },
       animation: {
