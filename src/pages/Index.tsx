@@ -7,7 +7,7 @@ import { DeanDashboard } from "@/components/dashboards/DeanDashboard";
 import { PanelDashboard } from "@/components/dashboards/PanelDashboard";
 
 const DASHBOARD_TITLES = {
-  student: "My Dashboard",
+  student: "Dashboard",
   supervisor: "Supervisor Dashboard",
   panel: "Assessment Panel",
   admin: "Admin Overview",
@@ -21,8 +21,10 @@ export default function Index() {
     <AppLayout>
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-foreground">{DASHBOARD_TITLES[currentRole]}</h1>
-        <p className="text-sm text-muted-foreground">Welcome back, {user.name}</p>
       </div>
+
+      {/* Section header bar like reference */}
+      <div className="section-header mb-5">Basic Information</div>
 
       {currentRole === "student" && <StudentDashboard />}
       {currentRole === "supervisor" && <SupervisorDashboard />}
