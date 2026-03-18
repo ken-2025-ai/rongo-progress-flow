@@ -40,6 +40,12 @@
     --status-warning: 38 92% 50%;
     --status-overdue: 0 72% 51%;
 
+    --success: 142 71% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --container-header: 42 60% 50%;
+    --container-header-foreground: 0 0% 100%;
+
     /* Sidebar: blue */
     --sidebar-background: 213 55% 32%;
     --sidebar-foreground: 210 20% 92%;
