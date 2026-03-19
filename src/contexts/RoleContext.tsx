@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export type UserRole = "student" | "supervisor" | "panel" | "admin" | "dean";
 
@@ -8,14 +10,6 @@ interface RoleUser {
   avatar: string;
   department?: string;
 }
-
-const DEMO_USERS: Record<UserRole, RoleUser> = {
-  student: { name: "Omondi Okech", role: "student", avatar: "OO", department: "Computer Science" },
-  supervisor: { name: "Dr. Amina Wanjiku", role: "supervisor", avatar: "AW", department: "Computer Science" },
-  panel: { name: "Prof. Kibet Langat", role: "panel", avatar: "KL", department: "Information Technology" },
-  admin: { name: "Janet Achieng", role: "admin", avatar: "JA", department: "PG Administration" },
-  dean: { name: "Dr. Silas Nyabuto", role: "dean", avatar: "SN", department: "School of Postgraduate Studies" },
-};
 
 const ROLE_LABELS: Record<UserRole, string> = {
   student: "Student",
@@ -32,25 +26,75 @@ interface RoleContextType {
   roleLabel: string;
   allRoles: UserRole[];
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (role: UserRole) => void;
   logout: () => void;
+  authUser: User | null;
 }
 
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  // In a real app, this would be handled by Auth (Supabase/Firebase)
-  // For this demo, we'll use a local state.
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentRole, setCurrentRole] = useState<UserRole>("student");
+  const [profile, setProfile] = useState<{ full_name: string; avatar_initials: string; department: string | null } | null>(null);
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setAuthUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Fetch profile and role
+        setTimeout(async () => {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_initials, department")
+            .eq("id", session.user.id)
+            .single();
+          
+          if (profileData) setProfile(profileData);
+
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .limit(1)
+            .single();
+
+          if (roleData) setCurrentRole(roleData.role as UserRole);
+          setIsLoading(false);
+        }, 0);
+      } else {
+        setProfile(null);
+        setIsLoading(false);
+      }
+    });
+
+    // Then check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = (role: UserRole) => {
     setCurrentRole(role);
-    setIsAuthenticated(true);
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setAuthUser(null);
+    setProfile(null);
+  };
+
+  const user: RoleUser = {
+    name: profile?.full_name || authUser?.user_metadata?.full_name || "User",
+    role: currentRole,
+    avatar: profile?.avatar_initials || "U",
+    department: profile?.department ?? undefined,
   };
 
   return (
@@ -58,12 +102,14 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       value={{
         currentRole,
         setCurrentRole,
-        user: DEMO_USERS[currentRole],
+        user,
         roleLabel: ROLE_LABELS[currentRole],
-        allRoles: Object.keys(DEMO_USERS) as UserRole[],
-        isAuthenticated,
+        allRoles: Object.keys(ROLE_LABELS) as UserRole[],
+        isAuthenticated: !!authUser,
+        isLoading,
         login,
         logout,
+        authUser,
       }}
     >
       {children}
@@ -77,4 +123,4 @@ export function useRole() {
   return ctx;
 }
 
-export { ROLE_LABELS, DEMO_USERS };
+export { ROLE_LABELS };
