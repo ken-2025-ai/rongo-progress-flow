@@ -112,6 +112,13 @@ const SUPER_ADMIN_TITLES: Record<string, string> = {
   "/settings": "Global Admin Settings",
 };
 
+const BRAND_PALETTE = {
+  navy: "#194973",
+  cyan: "#14B5D9",
+  gold: "#F2C335",
+  amber: "#BF8C2C",
+};
+
 const ROLE_SPECIFIC_TITLES = {
   supervisor: "Supervisor Command Center",
   panel: "Assessment Panel Briefing",
@@ -153,10 +160,10 @@ export default function Index() {
         case "/updates": return <AcademicUpdates />;
         case "/settings": return <AccountSettings />;
         default: return (
-           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl bg-muted/20">
-             <div className="p-4 bg-primary/10 rounded-full text-primary mb-4"><span className="text-4xl">🚀</span></div>
-             <h2 className="text-xl font-bold text-foreground">Section In Final Polish</h2>
-             <p className="text-muted-foreground mt-2 max-w-md">Our architects are putting the final touches on <span className="font-bold text-foreground italic">{DASHBOARD_TITLES[path]}</span>.</p>
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl" style={{ background: "rgba(25, 73, 115, 0.08)", borderColor: "rgba(20, 181, 217, 0.35)" }}>
+             <div className="p-4 rounded-full mb-4" style={{ background: "rgba(242, 195, 53, 0.15)", color: BRAND_PALETTE.amber }}><span className="text-4xl">🚀</span></div>
+             <h2 className="text-xl font-bold" style={{ color: BRAND_PALETTE.navy }}>Section In Final Polish</h2>
+             <p className="mt-2 max-w-md" style={{ color: "#5f6a7d" }}>Our architects are putting the final touches on <span className="font-bold italic" style={{ color: BRAND_PALETTE.navy }}>{DASHBOARD_TITLES[path]}</span>.</p>
            </div>
         );
       }
@@ -183,10 +190,10 @@ export default function Index() {
          case "/settings": return <AccountSettings />;
          
          default: return (
-           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl bg-muted/20">
-             <div className="p-4 bg-primary/10 rounded-full text-primary mb-4"><span className="text-4xl">🚀</span></div>
-             <h2 className="text-xl font-bold text-foreground">Section In Final Polish</h2>
-             <p className="text-muted-foreground mt-2 max-w-md">Our architects are putting the final touches on <span className="font-bold text-foreground italic">{DASHBOARD_TITLES[path] || SUPERVISOR_TITLES[path]}</span>.</p>
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl" style={{ background: "rgba(25, 73, 115, 0.08)", borderColor: "rgba(20, 181, 217, 0.35)" }}>
+             <div className="p-4 rounded-full mb-4" style={{ background: "rgba(242, 195, 53, 0.15)", color: BRAND_PALETTE.amber }}><span className="text-4xl">🚀</span></div>
+             <h2 className="text-xl font-bold" style={{ color: BRAND_PALETTE.navy }}>Section In Final Polish</h2>
+             <p className="mt-2 max-w-md" style={{ color: "#5f6a7d" }}>Our architects are putting the final touches on <span className="font-bold italic" style={{ color: BRAND_PALETTE.navy }}>{DASHBOARD_TITLES[path] || SUPERVISOR_TITLES[path]}</span>.</p>
            </div>
          );
        }
@@ -240,10 +247,10 @@ export default function Index() {
          case "/staff-registry": return <StaffRegistry />;
          case "/settings": return <AccountSettings />;
          default: return (
-           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed border-red-500/30 rounded-3xl bg-red-950/10">
-             <div className="p-4 bg-red-500/20 rounded-full text-red-500 mb-4"><span className="text-4xl">⚙️</span></div>
-             <h2 className="text-xl font-bold text-foreground">Governance Node Offline</h2>
-             <p className="text-muted-foreground mt-2 max-w-md">The <span className="font-bold text-red-400 italic">{SUPER_ADMIN_TITLES[path]}</span> module is currently locked pending senior architectural approval.</p>
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl" style={{ background: "rgba(25, 73, 115, 0.08)", borderColor: "rgba(20, 181, 217, 0.4)" }}>
+             <div className="p-4 rounded-full mb-4" style={{ background: "rgba(242, 195, 53, 0.15)", color: BRAND_PALETTE.amber }}><span className="text-4xl">⚙️</span></div>
+             <h2 className="text-xl font-bold" style={{ color: BRAND_PALETTE.navy }}>Governance Node Offline</h2>
+             <p className="mt-2 max-w-md" style={{ color: "#5f6a7d" }}>The <span className="font-bold italic" style={{ color: BRAND_PALETTE.cyan }}>{SUPER_ADMIN_TITLES[path]}</span> module is currently locked pending senior architectural approval.</p>
            </div>
          );
        }
@@ -260,13 +267,17 @@ export default function Index() {
           key={path}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-2xl font-bold text-foreground tracking-tight"
+          className="text-2xl font-bold tracking-tight"
+          style={{ color: BRAND_PALETTE.navy }}
         >
           {getTitle()}
         </motion.h1>
       </div>
 
-      <div className="section-header mb-5 bg-muted/30 p-2 rounded-md border border-border/50 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+      <div
+        className="mb-5 p-2 rounded-md border text-xs font-bold uppercase tracking-widest"
+        style={{ backgroundColor: "rgba(20, 181, 217, 0.1)", borderColor: "rgba(20, 181, 217, 0.4)", color: BRAND_PALETTE.navy }}
+      >
         Current Activity
       </div>
 
