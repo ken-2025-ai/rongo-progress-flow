@@ -4,23 +4,33 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RoleProvider, useRole } from "@/contexts/RoleContext";
-import Dashboard from "./pages/Dashboard.tsx";
-import Login from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import Dashboard from "./pages/Dashboard";
+import Auth from "./pages/Auth";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useRole();
+  const { isAuthenticated, isLoading } = useRole();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={isAuthenticated ? <Dashboard /> : <Login />} 
+      <Route
+        path="/"
+        element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" replace />}
       />
-      {/* Redirect /login to index as login is now at index */}
-      <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route
+        path="/auth"
+        element={!isAuthenticated ? <Auth /> : <Navigate to="/" replace />}
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
