@@ -121,7 +121,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
           'DEPT_COORDINATOR': 'admin',
           'SCHOOL_COORDINATOR': 'school_admin',
           'PG_DEAN': 'dean',
-          'EXAMINER': 'panel'
+          'EXAMINER': 'panel',
+          'SUPER_ADMIN': 'super_admin'
         };
         
         const mappedRole = dbRoleToAppRole[data.role] || 'student';
