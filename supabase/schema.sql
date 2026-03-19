@@ -291,3 +291,35 @@ CREATE POLICY "Only Dean views system logs" ON public.system_activity_log
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN')
   );
+
+-- ----------------------------------------------------
+-- PROGRESS REPORTS: Tracking student submissions
+-- ----------------------------------------------------
+CREATE TABLE public.progress_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  quarter TEXT NOT NULL,
+  year TEXT NOT NULL,
+  synopsis TEXT,
+  file_url TEXT NOT NULL,
+  status status_code_type DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.progress_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Student view own reports" ON public.progress_reports
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.id = progress_reports.student_id AND s.user_id = auth.uid())
+  );
+
+CREATE POLICY "Student insert own reports" ON public.progress_reports
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.id = progress_reports.student_id AND s.user_id = auth.uid())
+  );
+
+CREATE POLICY "Admins view all reports" ON public.progress_reports
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role IN ('SUPERVISOR', 'DEPT_COORDINATOR', 'SCHOOL_COORDINATOR', 'PG_DEAN'))
+  );

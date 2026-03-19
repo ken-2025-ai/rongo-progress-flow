@@ -6,38 +6,84 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, ShieldCheck, UserCircle, Briefcase, LayoutDashboard, Fingerprint, Mail, Lock } from "lucide-react";
+import { Fingerprint, Mail, Lock, User, UserPlus, LogIn } from "lucide-react";
 import { toast } from "sonner";
-
-const ROLE_ICONS: Record<UserRole, any> = {
-  student: GraduationCap,
-  supervisor: UserCircle,
-  panel: Briefcase,
-  admin: ShieldCheck,
-  dean: LayoutDashboard,
-};
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
-  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useRole();
+  
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate a premium login experience
-    setTimeout(() => {
-      login(selectedRole);
-      toast.success(`Logged in as ${ROLE_LABELS[selectedRole]}`, {
-        description: "Welcome back to Rongo Progress Flow.",
+    try {
+      if (isSignUp) {
+        // Sign Up Flow
+        if (!firstName || !lastName || !email || !password) {
+          throw new Error("All fields are required for registration.");
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        
+        if (data.user) {
+          // Attempt to map mapping to public.users table directly for demo purposes
+          // @ts-ignore
+          const { error: dbError } = await supabase.from('users').insert({
+             id: data.user.id,
+             email: data.user.email,
+             first_name: firstName,
+             last_name: lastName,
+             role: 'STUDENT'
+          });
+
+          if (dbError) {
+             console.error("User creation error:", dbError);
+             toast.warning("Auth registered, but missing DB binding.");
+          }
+
+          toast.success("Account created successfully!", {
+            description: "You have been registered. You can now login.",
+          });
+          setIsSignUp(false); // Switch to login view
+        }
+      } else {
+        // Log In Flow
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        toast.success(`Authentication Successful`, {
+          description: "Welcome back to Rongo Progress Flow.",
+        });
+        
+        // Wait briefly for RoleContext to resolve the fetch user state
+        setTimeout(() => {
+          navigate("/");
+        }, 500);
+      }
+    } catch (err: any) {
+      toast.error(isSignUp ? "Registration Failed" : "Authentication Failed", {
+        description: err.message || "An unexpected error occurred.",
       });
-      navigate("/");
+    } finally {
       setIsLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -109,40 +155,48 @@ export default function Login() {
 
         <Card className="border-white/10 bg-black/40 backdrop-blur-xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl text-white">{isSignUp ? "Create Account" : "Welcome Back"}</CardTitle>
             <CardDescription className="text-white/50">
-              Select your role and enter your credentials
+              {isSignUp ? "Register a new student node" : "Authenticate to access your workspace"}
             </CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-6 pt-6">
-              {/* Role Selection Tabs */}
-              <div className="grid grid-cols-5 gap-2 pb-2">
-                {(Object.keys(ROLE_ICONS) as UserRole[]).map((role) => {
-                  const Icon = ROLE_ICONS[role];
-                  const isSelected = selectedRole === role;
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setSelectedRole(role)}
-                      className={`flex flex-col items-center gap-2 p-2 rounded-xl transition-all duration-300 ${
-                        isSelected 
-                        ? "bg-primary text-white shadow-lg ring-1 ring-white/20" 
-                        : "bg-white/5 text-white/40 hover:bg-white/10"
-                      }`}
-                    >
-                      <Icon size={18} />
-                      <span className="text-[10px] uppercase font-bold tracking-wider truncate w-full text-center">
-                        {role}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
+          <form onSubmit={handleAuth}>
+            <CardContent className="space-y-6 pt-4">
+              
               <div className="space-y-4">
+                {isSignUp && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2 relative group">
+                      <Label htmlFor="firstName" className="text-white/80 font-medium ml-1">First Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" size={18} />
+                        <Input 
+                          id="firstName" 
+                          placeholder="John" 
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 pl-10 h-12 rounded-xl focus:bg-white/10 transition-all focus:ring-primary/40"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2 relative group">
+                      <Label htmlFor="lastName" className="text-white/80 font-medium ml-1">Last Name</Label>
+                      <div className="relative">
+                        <Input 
+                          id="lastName" 
+                          placeholder="Doe" 
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 pl-4 h-12 rounded-xl focus:bg-white/10 transition-all focus:ring-primary/40"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2 relative group">
                   <Label htmlFor="email" className="text-white/80 font-medium ml-1">Email address</Label>
                   <div className="relative">
@@ -162,9 +216,11 @@ export default function Login() {
                 <div className="space-y-2 relative group">
                   <div className="flex justify-between items-center ml-1">
                     <Label htmlFor="password" className="text-white/80 font-medium">Password</Label>
-                    <button type="button" className="text-[11px] font-bold text-primary hover:text-primary/80 uppercase tracking-wider">
-                      Forgot?
-                    </button>
+                    {!isSignUp && (
+                      <button type="button" className="text-[11px] font-bold text-primary hover:text-primary/80 uppercase tracking-wider">
+                        Forgot?
+                      </button>
+                    )}
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" size={18} />
@@ -176,23 +232,28 @@ export default function Login() {
                       onChange={(e) => setPassword(e.target.value)}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/20 pl-10 h-12 rounded-xl focus:bg-white/10 transition-all focus:ring-primary/40"
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <div className="w-full h-[1px] bg-white/10" />
-                <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest px-2 whitespace-nowrap">Secure Access</span>
-                <div className="w-full h-[1px] bg-white/10" />
-              </div>
+              {!isSignUp && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-full h-[1px] bg-white/10" />
+                    <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest px-2 whitespace-nowrap">Secure Access</span>
+                    <div className="w-full h-[1px] bg-white/10" />
+                  </div>
 
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
-                <Fingerprint className="text-primary animate-pulse" size={20} />
-                <div className="text-[11px] text-white/60">
-                  <span className="text-primary font-bold">Biometric available</span> - Touch ID or Face ID for {ROLE_LABELS[selectedRole]} account.
-                </div>
-              </div>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
+                    <Fingerprint className="text-primary animate-pulse" size={20} />
+                    <div className="text-[11px] text-white/60">
+                      <span className="text-primary font-bold">Biometric available</span> - Touch ID or Face ID enabled.
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
 
             <CardFooter className="flex flex-col gap-4 pb-8">
@@ -204,10 +265,13 @@ export default function Login() {
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    <span>Authenticating...</span>
+                    <span>Processing...</span>
                   </div>
                 ) : (
-                  <span>Sign In as {ROLE_LABELS[selectedRole]}</span>
+                  <span className="flex items-center gap-2">
+                    {isSignUp ? <UserPlus size={18}/> : <LogIn size={18}/>}
+                    {isSignUp ? "Register Account" : "Secure Sign In"}
+                  </span>
                 )}
               </Button>
             </CardFooter>
@@ -221,7 +285,14 @@ export default function Login() {
           className="mt-8 text-center"
         >
           <p className="text-white/40 text-sm">
-            Don't have an account? <button className="text-primary font-bold hover:underline">Contact Registrar</button>
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+            <button 
+              type="button" 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-primary font-bold hover:underline ml-2"
+            >
+              {isSignUp ? "Sign In" : "Register here"}
+            </button>
           </p>
           <p className="text-white/20 text-[10px] uppercase font-medium tracking-[0.2em] mt-8">
             © 2024 Rongo University | Excellence with Integrity

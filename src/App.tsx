@@ -12,7 +12,20 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useRole();
+  const { isAuthenticated, isLoading } = useRole();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+         <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <p className="text-white/60 text-sm tracking-widest uppercase font-bold animate-pulse">
+               Validating Session...
+            </p>
+         </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
