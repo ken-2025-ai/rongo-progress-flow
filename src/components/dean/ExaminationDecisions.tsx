@@ -1,126 +1,227 @@
 import { motion } from "framer-motion";
-import { 
-  FileBarChart, CheckCircle2, AlertTriangle, XCircle, Search, ShieldCheck
-} from "lucide-react";
+import { ClipboardCheck, Search, Loader2, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Dialog, DialogContent, DialogHeader, 
-  DialogTitle, DialogTrigger, DialogFooter
-} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { containerVariants, itemVariants } from "@/lib/animations";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
 import { toast } from "sonner";
-import { useState } from "react";
 
-const VIVA_CANDIDATES = [
-  {
-    id: 1,
-    student: "John Musyoka",
-    programme: "MSc Health Informatics",
-    dateScheduled: "May 2, 2026",
-    status: "Awaiting Exam Decision",
-  }
+const OUTCOMES = [
+  { value: "PASS", label: "Pass (No Corrections)", icon: CheckCircle2, color: "text-success", bg: "bg-success/10 border-success/20" },
+  { value: "MINOR_CORRECTIONS", label: "Minor Corrections", icon: AlertTriangle, color: "text-status-warning", bg: "bg-status-warning/10 border-status-warning/20" },
+  { value: "MAJOR_CORRECTIONS", label: "Major Corrections", icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10 border-destructive/20" },
+  { value: "FAIL", label: "Fail", icon: XCircle, color: "text-destructive", bg: "bg-destructive/10 border-destructive/20" },
 ];
 
 export function ExaminationDecisions() {
+  const { user } = useRole();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDecision, setSelectedDecision] = useState("");
+  const [selectedOutcome, setSelectedOutcome] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const recordDecision = (name: string) => {
-    toast.success(`Final Examination Result Logged for ${name}`, {
-      description: `Outcome: ${selectedDecision.replace("-", " ")}. Correction workflow activated.`,
-      duration: 5000
-    });
+  useEffect(() => { fetchCandidates(); }, []);
+
+  const fetchCandidates = async () => {
+    setLoading(true);
+    try {
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          user:user_id(first_name, last_name, email),
+          programme:programme_id(name, department:department_id(name)),
+          evaluations(id, recommendation, evaluation_type, created_at, comments)
+        `)
+        .in('current_stage', ['VIVA_SCHEDULED', 'PG_EXAMINATION']);
+
+      if (error) throw error;
+      setCandidates(data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load examination decisions.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleDecision = async (candidate: any) => {
+    if (!selectedOutcome) {
+      toast.error("Select an outcome before saving.");
+      return;
+    }
+    setSaving(true);
+    try {
+      // 1. Record viva evaluation
+      // @ts-ignore
+      const { error: evalErr } = await supabase.from('evaluations').insert({
+        student_id: candidate.id,
+        evaluator_id: user?.id,
+        evaluation_type: 'VIVA',
+        recommendation: selectedOutcome,
+        comments: notes
+      });
+      if (evalErr) throw evalErr;
+
+      // 2. Advance student stage
+      const nextStage = selectedOutcome === 'PASS' ? 'COMPLETED' : 'CORRECTIONS';
+      // @ts-ignore
+      const { error: stageErr } = await supabase
+        .from('students')
+        .update({ current_stage: nextStage })
+        .eq('id', candidate.id);
+      if (stageErr) throw stageErr;
+
+      toast.success("Viva Decision Recorded", {
+        description: `${candidate.user?.first_name} ${candidate.user?.last_name} — ${selectedOutcome.replace(/_/g, ' ')}. Stage updated.`
+      });
+      setSelectedOutcome("");
+      setNotes("");
+      fetchCandidates();
+    } catch (err: any) {
+      toast.error("Decision Failed", { description: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filtered = candidates.filter(c =>
+    `${c.user?.first_name} ${c.user?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return (
+    <div className="h-80 flex items-center justify-center">
+      <Loader2 className="animate-spin text-primary" size={40} />
+    </div>
+  );
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-card p-4 rounded-xl border border-border/50">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-card p-5 rounded-2xl border border-border/50 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <FileBarChart className="text-secondary" />
-            Examination Decisions
+          <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+            <ClipboardCheck className="text-primary" /> Examination Decisions
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">Record the final PG Board consensus post Viva Voce defence.</p>
+          <p className="text-xs text-muted-foreground mt-1 font-medium">
+            Record final Viva-Voce outcomes and advance candidates through the pipeline.
+          </p>
         </div>
         <div className="relative w-full md:w-80">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-           <Input 
-             placeholder="Search candidates post-viva..." 
-             className="pl-9 h-9 text-sm rounded-lg bg-muted/20"
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-           />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Input placeholder="Search candidate..." className="pl-9 h-10 text-sm rounded-xl" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {VIVA_CANDIDATES.map((candidate) => (
-          <motion.div key={candidate.id} variants={itemVariants} className="card-shadow bg-card border-l-4 border-l-secondary rounded-xl overflow-hidden border-border p-6 flex flex-col xl:flex-row gap-8 items-center justify-between">
-             
-             <div className="flex-1 space-y-2">
-                <Badge variant="outline" className="bg-secondary/10 text-secondary border-transparent uppercase tracking-wider text-[10px] animate-pulse glow-secondary mb-2">
-                   {candidate.status}
-                </Badge>
-                <h3 className="text-xl font-bold text-foreground">{candidate.student}</h3>
-                <p className="text-sm text-muted-foreground font-medium">{candidate.programme}</p>
-                <div className="pt-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
-                   <ShieldCheck size={14} className="text-primary"/> 
-                   PG Board Review: <span className="text-foreground">{candidate.dateScheduled}</span>
-                </div>
-             </div>
-
-             <div className="w-full xl:w-96">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      className="w-full h-12 bg-success hover:bg-success/90 text-success-foreground text-sm font-bold shadow-lg shadow-success/20 uppercase tracking-wider transition-all"
-                    >
-                       Record Viva Outcome
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                         <FileBarChart className="text-success" /> Select Board Verdict
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                       <p className="text-xs text-muted-foreground">Select the official ruling from the Board of Examiners for <strong className="text-foreground">{candidate.student}</strong>. This dictates their timeline moving to Graduation.</p>
-                       
-                       <div className="grid grid-cols-2 gap-2">
-                          <Button variant={selectedDecision === "pass" ? "default" : "outline"} className={`h-10 border-border/50 text-[10px] font-bold uppercase tracking-wider justify-start px-3 ${selectedDecision === "pass" ? "bg-success text-success-foreground border-transparent" : "hover:bg-success/5 hover:text-success"}`} onClick={() => setSelectedDecision("pass")}>
-                             <CheckCircle2 size={16} className="mr-2" /> Unconditional Pass
+      {filtered.length === 0 ? (
+        <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl text-muted-foreground opacity-50">
+          <ClipboardCheck size={48} className="mb-4" />
+          <p className="font-black text-xs uppercase tracking-widest">No candidates in active viva queue</p>
+        </div>
+      ) : (
+        <motion.div variants={itemVariants} className="card-shadow bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="p-4 border-b border-border bg-muted/10 flex justify-between">
+            <h3 className="font-black text-sm uppercase tracking-widest text-muted-foreground">Active Viva Queue</h3>
+            <Badge className="bg-primary/10 text-primary border-primary/20">{filtered.length} pending</Badge>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-black">Candidate</TableHead>
+                <TableHead className="font-black">Thesis</TableHead>
+                <TableHead className="font-black">Previous Evaluations</TableHead>
+                <TableHead className="text-right font-black">Final Decision</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(candidate => {
+                const vivaEvals = (candidate.evaluations || []).filter((e: any) => e.evaluation_type === 'VIVA');
+                return (
+                  <TableRow key={candidate.id} className="hover:bg-muted/5">
+                    <TableCell className="align-top pt-5">
+                      <span className="block font-black text-base">{candidate.user?.first_name} {candidate.user?.last_name}</span>
+                      <Badge variant="outline" className="text-[9px] uppercase mt-1.5">{candidate.programme?.department?.name}</Badge>
+                    </TableCell>
+                    <TableCell className="align-top pt-5 max-w-xs">
+                      <p className="font-semibold text-sm truncate">{candidate.research_title || 'Title pending'}</p>
+                      <p className="text-xs text-muted-foreground">{candidate.programme?.name}</p>
+                    </TableCell>
+                    <TableCell className="align-top pt-5">
+                      <div className="space-y-1">
+                        {vivaEvals.length === 0 ? (
+                          <span className="text-xs text-muted-foreground italic">No viva records yet</span>
+                        ) : (
+                          vivaEvals.slice(-2).map((ev: any) => (
+                            <Badge key={ev.id} variant="outline" className="text-[9px] block w-fit">
+                              {ev.recommendation?.replace(/_/g, ' ')}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right align-top pt-5">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" className="h-8 bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-md">
+                            Record Viva Decision
                           </Button>
-                          <Button variant={selectedDecision === "minor-corrections" ? "default" : "outline"} className={`h-10 border-border/50 text-[10px] font-bold uppercase tracking-wider justify-start px-3 ${selectedDecision === "minor-corrections" ? "bg-status-warning text-status-warning-foreground border-transparent" : "hover:bg-status-warning/5 hover:text-status-warning"}`} onClick={() => setSelectedDecision("minor-corrections")}>
-                             <AlertTriangle size={16} className="mr-2" /> Minor Corrections
-                          </Button>
-                          <Button variant={selectedDecision === "major-corrections" ? "default" : "outline"} className={`h-10 border-border/50 text-[10px] font-bold uppercase tracking-wider justify-start px-3 ${selectedDecision === "major-corrections" ? "bg-destructive text-destructive-foreground border-transparent" : "hover:bg-destructive/5 hover:text-destructive"}`} onClick={() => setSelectedDecision("major-corrections")}>
-                             <AlertTriangle size={16} className="mr-2" /> Major Corrections
-                          </Button>
-                          <Button variant={selectedDecision === "fail" ? "default" : "outline"} className={`h-10 border-border/50 text-[10px] font-bold uppercase tracking-wider justify-start px-3 ${selectedDecision === "fail" ? "bg-muted text-foreground border-transparent" : "hover:bg-muted/10 hover:text-foreground"}`} onClick={() => setSelectedDecision("fail")}>
-                             <XCircle size={16} className="mr-2" /> Fail
-                          </Button>
-                       </div>
-
-                       <div className="space-y-2 pt-2">
-                          <label className="text-xs font-bold text-foreground">Official Final Corrections (If Any)</label>
-                          <Textarea placeholder="Extract the core amendments mandated by the board to complete before Final Clearance..." className="min-h-[100px] text-sm" />
-                       </div>
-                    </div>
-                    <DialogFooter>
-                       <Button variant="outline" className="text-xs font-bold uppercase">Cancel</Button>
-                       <Button className="bg-success text-success-foreground text-xs font-bold uppercase" onClick={() => recordDecision(candidate.student)} disabled={!selectedDecision}>Save Decision</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-             </div>
-
-          </motion.div>
-        ))}
-      </div>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-2xl max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="font-black text-xl">Final Viva Decision</DialogTitle>
+                            <p className="text-xs text-muted-foreground">For: <strong>{candidate.user?.first_name} {candidate.user?.last_name}</strong></p>
+                          </DialogHeader>
+                          <div className="space-y-5 py-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              {OUTCOMES.map(o => (
+                                <button
+                                  key={o.value}
+                                  type="button"
+                                  onClick={() => setSelectedOutcome(o.value)}
+                                  className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-all ${selectedOutcome === o.value ? `${o.bg} border-opacity-100` : 'border-border hover:border-primary/30 bg-muted/5'}`}
+                                >
+                                  <o.icon size={16} className={selectedOutcome === o.value ? o.color : 'text-muted-foreground'} />
+                                  <span className={`text-[10px] font-black uppercase tracking-wider leading-tight ${selectedOutcome === o.value ? o.color : 'text-muted-foreground'}`}>{o.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-black uppercase text-muted-foreground">Panel Notes</label>
+                              <Textarea
+                                placeholder="Summarize the panel's findings, corrections required, or commendations..."
+                                className="min-h-[100px] rounded-xl"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              className="bg-primary text-white font-black text-[10px] uppercase h-11 px-8 rounded-xl"
+                              disabled={saving || !selectedOutcome}
+                              onClick={() => handleDecision(candidate)}
+                            >
+                              {saving ? <Loader2 size={16} className="animate-spin" /> : "Save & Advance Pipeline"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

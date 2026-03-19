@@ -234,33 +234,47 @@ CREATE TRIGGER on_auth_user_created
 -- 8. SEED DATA (CORE STRUCTURE)
 -- ==========================================
 
-INSERT INTO public.schools (name) 
-VALUES ('INFOCOMS')
-ON CONFLICT (name) DO NOTHING;
+-- Seed all Schools
+INSERT INTO public.schools (name) VALUES ('INFOCOMS') ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.schools (name) VALUES ('SAES')     ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.schools (name) VALUES ('SASSB')    ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.schools (name) VALUES ('Education') ON CONFLICT (name) DO NOTHING;
 
--- Map IDs for departments (Seed Logic)
+-- Seed INFOCOMS departments and programmes
 DO $$
 DECLARE
-    school_id UUID;
-    ihrs_id UUID;
-    cmj_id UUID;
+    infocoms_id UUID;
+    ihrs_id     UUID;
+    cmj_id      UUID;
 BEGIN
-    SELECT id INTO school_id FROM public.schools WHERE name = 'INFOCOMS' LIMIT 1;
-    
-    INSERT INTO public.departments (school_id, name) VALUES (school_id, 'IHRS') ON CONFLICT DO NOTHING;
-    INSERT INTO public.departments (school_id, name) VALUES (school_id, 'CMJ') ON CONFLICT DO NOTHING;
+    SELECT id INTO infocoms_id FROM public.schools WHERE name = 'INFOCOMS' LIMIT 1;
+
+    -- Departments under INFOCOMS
+    INSERT INTO public.departments (school_id, name) VALUES (infocoms_id, 'IHRS') ON CONFLICT DO NOTHING;
+    INSERT INTO public.departments (school_id, name) VALUES (infocoms_id, 'CMJ')  ON CONFLICT DO NOTHING;
 
     SELECT id INTO ihrs_id FROM public.departments WHERE name = 'IHRS' LIMIT 1;
-    SELECT id INTO cmj_id FROM public.departments WHERE name = 'CMJ' LIMIT 1;
+    SELECT id INTO cmj_id  FROM public.departments WHERE name = 'CMJ'  LIMIT 1;
 
-    -- Seed Programmes for IHRS
-    INSERT INTO public.programmes (department_id, name, code) VALUES (ihrs_id, 'MSc. Human Resource Management', 'MSc.HRM') ON CONFLICT DO NOTHING;
-    INSERT INTO public.programmes (department_id, name, code) VALUES (ihrs_id, 'PhD. Human Resource Management', 'PhD.HRM') ON CONFLICT DO NOTHING;
-    
-    -- Seed Programmes for CMJ
-    INSERT INTO public.programmes (department_id, name, code) VALUES (cmj_id, 'MSc. Communication Studies', 'MSc.CS') ON CONFLICT DO NOTHING;
-    INSERT INTO public.programmes (department_id, name, code) VALUES (cmj_id, 'PhD. Communication Studies', 'PhD.CS') ON CONFLICT DO NOTHING;
-    INSERT INTO public.programmes (department_id, name, code) VALUES (cmj_id, 'MA. Journalism', 'MA.J') ON CONFLICT DO NOTHING;
+    -- IHRS Programmes
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (ihrs_id, 'MSc. IT Specialization',   'MSc.ITS')  ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (ihrs_id, 'PhD. IT Specialization',   'PhD.ITS')  ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (ihrs_id, 'MSc. Health Informatics',  'MSc.HI')   ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (ihrs_id, 'PhD. Health Informatics',  'PhD.HI')   ON CONFLICT DO NOTHING;
+
+    -- CMJ Programmes
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (cmj_id, 'MSc. Photography',  'MSc.PHO') ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (cmj_id, 'PhD. Photography',  'PhD.PHO') ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (cmj_id, 'MA. Journalism',    'MA.J')    ON CONFLICT DO NOTHING;
+    INSERT INTO public.programmes (department_id, name, code)
+      VALUES (cmj_id, 'PhD. Journalism',   'PhD.J')   ON CONFLICT DO NOTHING;
 END $$;
 
 

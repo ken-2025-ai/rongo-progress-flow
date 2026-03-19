@@ -131,7 +131,8 @@ export default function Login() {
           y: [0, -30, 0]
         }}
         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[100px] pointer-events-none"
+        className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full opacity-20 blur-[100px] pointer-events-none"
+        style={{ backgroundColor: '#14b5d9' }}
       />
       <motion.div 
         animate={{ 
@@ -141,7 +142,8 @@ export default function Login() {
           y: [0, 30, 0]
         }}
         transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-        className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-accent/15 blur-[100px] pointer-events-none"
+        className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full opacity-15 blur-[100px] pointer-events-none"
+        style={{ backgroundColor: '#BF8C2C' }}
       />
 
       {/* Login Card */}
@@ -156,17 +158,19 @@ export default function Login() {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl bg-primary/20 backdrop-blur-md border border-white/20 shadow-2xl"
+            className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden relative group"
+            style={{ backgroundColor: '#BF8C2C33' }}
           >
-            <div className="text-primary-foreground font-bold text-3xl">R</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#BF8C2C]/20 to-transparent group-hover:scale-110 transition-transform" />
+            <div className="relative font-black text-4xl" style={{ color: '#BF8C2C' }}>R</div>
           </motion.div>
           <motion.h1 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-4xl font-bold text-white tracking-tight"
+            className="text-4xl font-black tracking-tight"
           >
-            Progress Flow
+            <span style={{ color: '#14b5d9' }}>Progress</span> <span style={{ color: '#BF8C2C' }}>Flow</span>
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
