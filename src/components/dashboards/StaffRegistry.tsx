@@ -16,19 +16,21 @@ const DEFAULT_PASSWORDS: Record<string, string> = {
 };
 
 export function StaffRegistry() {
+  const [schools, setSchools] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [staffId, setStaffId] = useState("");
   const [selectedRole, setSelectedRole] = useState("SUPERVISOR");
+  const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // @ts-ignore
-    supabase.from('departments').select('*').then(({ data }) => {
-      if (data) setDepartments(data);
-    });
+    supabase.from('schools').select('*').then(({ data }) => setSchools(data || []));
+    // @ts-ignore
+    supabase.from('departments').select('*').then(({ data }) => setDepartments(data || []));
   }, []);
 
   const handleStaffProvisioning = async (e: React.FormEvent) => {
@@ -166,19 +168,43 @@ export function StaffRegistry() {
                         </select>
                      </div>
 
-                     <div className="space-y-1.5 pt-2">
-                        <label className="text-xs font-bold text-foreground">Department Allocation</label>
-                        <select 
-                          value={selectedDept}
-                          onChange={e => setSelectedDept(e.target.value)}
-                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                           <option value="">Select Department</option>
-                           {departments.map(d => (
-                             <option key={d.id} value={d.id}>{d.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <div className="space-y-1.5 pt-2">
+                         <label className="text-xs font-bold text-foreground">Institutional School</label>
+                         <select 
+                           value={selectedSchool}
+                           onChange={e => {
+                              setSelectedSchool(e.target.value);
+                              setSelectedDept("");
+                           }}
+                           className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                         >
+                            <option value="">Select School</option>
+                            <option value="INFOCOMS">INFOCOMS (System Fallback)</option>
+                            {schools.filter(s => s.name !== 'INFOCOMS').map(s => (
+                               <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                         </select>
+                      </div>
+
+                      <div className="space-y-1.5 pt-2">
+                         <label className="text-xs font-bold text-foreground">Department Allocation</label>
+                         <select 
+                           value={selectedDept}
+                           onChange={e => setSelectedDept(e.target.value)}
+                           className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                         >
+                            <option value="">Select Department</option>
+                            {selectedSchool === 'INFOCOMS' && (
+                               <>
+                                 <option value="IHRS">IHRS (System Default)</option>
+                                 <option value="CMJ">CMJ (System Default)</option>
+                               </>
+                            )}
+                            {departments.filter(d => d.school_id === selectedSchool).map(d => (
+                               <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                         </select>
+                      </div>
 
                      <div className="space-y-1.5 pt-2">
                         <label className="text-xs font-bold text-foreground font-mono tracking-tighter">Institutional Staff ID (UPI)</label>

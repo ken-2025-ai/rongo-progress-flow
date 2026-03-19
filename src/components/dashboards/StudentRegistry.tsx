@@ -148,30 +148,46 @@ export function StudentRegistry() {
                <div className="space-y-4 pt-4">
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2">Academic Placement</h4>
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-foreground">School</label>
-                        <select 
-                          value={selectedSchool}
-                          onChange={e => setSelectedSchool(e.target.value)}
-                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                           <option value="">Select School</option>
-                           {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                     </div>
-                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-foreground">Department</label>
-                        <select 
-                          value={selectedDept}
-                          onChange={e => setSelectedDept(e.target.value)}
-                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                           <option value="">Select Department</option>
-                           {departments.filter(d => !selectedSchool || d.school_id === selectedSchool).map(d => (
-                             <option key={d.id} value={d.id}>{d.name}</option>
-                           ))}
-                        </select>
-                     </div>
+                      <div className="space-y-1.5">
+                         <label className="text-xs font-bold text-foreground">School</label>
+                         <select 
+                           value={selectedSchool}
+                           onChange={e => {
+                              setSelectedSchool(e.target.value);
+                              setSelectedDept(""); // Reset dept on school change
+                              setSelectedProg(""); // Reset prog as well
+                           }}
+                           className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                         >
+                            <option value="">Select School</option>
+                            <option value="INFOCOMS">INFOCOMS (Hardware Fallback)</option>
+                            {schools.filter(s => s.name !== 'INFOCOMS').map(s => (
+                               <option key={s.id} value={s.id}>{s.name || "Unnamed Unit"}</option>
+                            ))}
+                         </select>
+                      </div>
+                      <div className="space-y-1.5">
+                         <label className="text-xs font-bold text-foreground">Department</label>
+                         <select 
+                           value={selectedDept}
+                           onChange={e => {
+                              setSelectedDept(e.target.value);
+                              setSelectedProg("");
+                           }}
+                           className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                         >
+                            <option value="">Select Department</option>
+                            {selectedSchool === 'INFOCOMS' && (
+                               <>
+                                 <option value="IHRS">IHRS (Academic Unit)</option>
+                                 <option value="CMJ">CMJ (Academic Unit)</option>
+                               </>
+                            )}
+                            {departments.filter(d => d.school_id === selectedSchool).map(d => (
+                               <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                         </select>
+                      </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-1.5">
