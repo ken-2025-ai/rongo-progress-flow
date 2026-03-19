@@ -114,11 +114,20 @@ export default function Login() {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-6">
       {/* Dynamic Background Image */}
+      {/* Brand Structured Background with 75/25 Split */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale-[0.2] contrast-[1.1]"
+        className="absolute inset-0 z-[1] opacity-70"
+        style={{ 
+          background: 'linear-gradient(to bottom, #BF8C2C 0%, #BF8C2C 72%, #14b5d9 78%, #14b5d9 100%)'
+        }}
+      />
+      
+      {/* Background Campus Image Overlay - Deep Layer */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale-[0.3] contrast-[1.2]"
         style={{ 
           backgroundImage: 'url("/rongo_university_campus_abstract_1773834339638.png")',
-          filter: "brightness(0.35) saturate(0.8)"
+          filter: "brightness(0.15) saturate(0.6)"
         }}
       />
       
@@ -131,7 +140,8 @@ export default function Login() {
           y: [0, -30, 0]
         }}
         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[100px] pointer-events-none"
+        className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full opacity-20 blur-[100px] pointer-events-none"
+        style={{ backgroundColor: '#14b5d9' }}
       />
       <motion.div 
         animate={{ 
@@ -141,7 +151,8 @@ export default function Login() {
           y: [0, 30, 0]
         }}
         transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-        className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-accent/15 blur-[100px] pointer-events-none"
+        className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full opacity-15 blur-[100px] pointer-events-none"
+        style={{ backgroundColor: '#BF8C2C' }}
       />
 
       {/* Login Card */}
@@ -156,17 +167,19 @@ export default function Login() {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl bg-primary/20 backdrop-blur-md border border-white/20 shadow-2xl"
+            className="inline-flex items-center justify-center w-20 h-20 mb-4 rounded-3xl backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden relative group"
+            style={{ backgroundColor: '#BF8C2C33' }}
           >
-            <div className="text-primary-foreground font-bold text-3xl">R</div>
+            <div className="absolute inset-0 bg-gradient-to-br from-[#BF8C2C]/20 to-transparent group-hover:scale-110 transition-transform" />
+            <div className="relative font-black text-4xl" style={{ color: '#BF8C2C' }}>R</div>
           </motion.div>
           <motion.h1 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-4xl font-bold text-white tracking-tight"
+            className="text-4xl font-black tracking-tight"
           >
-            Progress Flow
+            <span style={{ color: '#14b5d9' }}>Progress</span> <span style={{ color: '#BF8C2C' }}>Flow</span>
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}
@@ -303,25 +316,58 @@ export default function Login() {
           </form>
         </Card>
 
+        {/* Quick Access Testing Portal */}
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.8 }}
+          className="mt-12 w-full max-w-4xl mx-auto"
         >
-          <p className="text-white/40 text-sm">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}
-            <button 
-              type="button" 
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary font-bold hover:underline ml-2"
-            >
-              {isSignUp ? "Sign In" : "Register here"}
-            </button>
-          </p>
-          <p className="text-white/20 text-[10px] uppercase font-medium tracking-[0.2em] mt-8">
-            © 2024 Rongo University | Excellence with Integrity
-          </p>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-[1px] flex-1 bg-white/10" />
+            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 whitespace-nowrap px-4 bg-[#BF8C2C]/5 border border-[#BF8C2C]/10 py-2 rounded-full backdrop-blur-sm">
+              Scholastic Testing Portal
+            </h2>
+            <div className="h-[1px] flex-1 bg-white/10" />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { role: "Student", id: "ookech@students.rongo.ac.ke", pass: "pgstudent", color: "border-white/5 bg-white/5" },
+              { role: "Supervisor", id: "awanjiku@rongo.ac.ke", pass: "supervisor", color: "border-primary/20 bg-primary/5" },
+              { role: "Dept Coord", id: "jachieng@rongo.ac.ke", pass: "pgcoordinator", color: "border-[#BF8C2C]/20 bg-[#BF8C2C]/5" },
+              { role: "School Coord", id: "poduor@rongo.ac.ke", pass: "pgcoordinator", color: "border-primary/30 bg-primary/10" },
+              { role: "PG Dean", id: "snyabuto@rongo.ac.ke", pass: "pgdean", color: "border-success/20 bg-success/5" },
+              { role: "System Admin", id: "kenkendagor3@gmail.com", pass: "rongoadmin", color: "border-destructive/20 bg-destructive/5" },
+            ].map((cred) => (
+              <button
+                key={cred.id}
+                type="button"
+                onClick={() => {
+                  setLoginIdentifier(cred.id);
+                  setPassword(cred.pass);
+                  toast.success(`Injecting ${cred.role} Credentials`, {
+                    description: "Auto-fill complete. Press secure login to continue."
+                  });
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all hover:scale-[1.05] active:scale-[0.95] group hover:border-white/40 ${cred.color} backdrop-blur-sm`}
+              >
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/60 mb-1 group-hover:text-white transition-colors">
+                  {cred.role}
+                </p>
+                <div className="space-y-0.5">
+                  <p className="text-[8px] font-mono text-white/30 truncate">{cred.id.split('@')[0]}...</p>
+                  <p className="text-[8px] font-mono text-white/50">{cred.pass}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-6 text-center">
+            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest italic flex items-center justify-center gap-2">
+              <LogIn size={10} /> Select a role node to pre-populate the authentication handshake
+            </p>
+          </div>
         </motion.div>
       </motion.div>
     </div>

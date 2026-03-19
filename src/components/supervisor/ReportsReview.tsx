@@ -26,14 +26,13 @@ export function ReportsReview() {
   const fetchPendingReports = async () => {
     setLoading(true);
     try {
-      // get students supervised by this user
       // @ts-ignore
       const { data: students } = await supabase.from('students').select('id').eq('supervisor_id', user.id);
       
       if (students && students.length > 0) {
         const sIds = students.map(s => s.id);
         // @ts-ignore
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('progress_reports')
           .select(`
             *,
@@ -43,7 +42,7 @@ export function ReportsReview() {
             )
           `)
           .in('student_id', sIds)
-          .eq('status', 'PENDING');
+          .eq('status', 'PENDING_SUPERVISOR');
         
         if (data) setReports(data);
       }
@@ -54,7 +53,7 @@ export function ReportsReview() {
     }
   };
 
-  const handleDecision = async (status: 'APPROVED' | 'REJECTED') => {
+  const handleDecision = async (status: 'PENDING_DEPT' | 'REJECTED') => {
     if (!selectedReport) return;
     setProcessing(true);
     try {
@@ -63,16 +62,16 @@ export function ReportsReview() {
         .from('progress_reports')
         .update({ 
            status, 
-           // In a real system, we'd have a feedback column. For MVP we use synopsis or a log.
-           // Let's assume there's a status_notes or similar in future, for now we just update status.
            updated_at: new Date().toISOString()
         })
         .eq('id', selectedReport.id);
 
       if (error) throw error;
 
-      toast.success(`Report ${status.toLowerCase()}`, {
-        description: `Feedback has been sent to ${selectedReport.student?.user?.first_name}.`
+      toast.success(status === 'PENDING_DEPT' ? "Endorsed to Dept" : "Report Returned", {
+        description: status === 'PENDING_DEPT' 
+          ? `Report forwarded to Department for final review.` 
+          : `Feedback has been sent to ${selectedReport.student?.user?.first_name}.`
       });
       
       setSelectedReport(null);
@@ -175,11 +174,11 @@ export function ReportsReview() {
                           <XCircle size={18} /> Request Revisions
                        </Button>
                        <Button 
-                          onClick={() => handleDecision('APPROVED')}
+                          onClick={() => handleDecision('PENDING_DEPT')}
                           disabled={processing}
                           className="h-12 bg-success hover:bg-success/90 text-white font-bold gap-2 shadow-lg shadow-success/20"
                        >
-                          <CheckCircle2 size={18} /> Approve Progress
+                          <CheckCircle2 size={18} /> Endorse to Dept
                        </Button>
                     </div>
                  </div>

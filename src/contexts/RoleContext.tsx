@@ -10,6 +10,7 @@ interface RoleUser {
   role: UserRole;
   avatar: string;
   department?: string;
+  department_id?: string;
   email?: string;
 }
 
@@ -95,11 +96,11 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = async (userId: string, email?: string) => {
     try {
       // For MVP, if they logged in specifically as kenkendagor3 - super admin shortcut
-      if (email === "kenkendagor3@gmail.com") {
+      if (email === "ngichelle99@gmail.com") {
         setCurrentRole("super_admin");
         setAuthUser({
           id: userId,
-          name: "Ken Dagor",
+          name: "michelle njeri",
           role: "super_admin",
           avatar: "SA",
           email: email
@@ -133,7 +134,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
           name: `${data.first_name || ""} ${data.last_name || ""}`,
           role: mappedRole,
           avatar: (data.first_name?.[0] || "") + (data.last_name?.[0] || ""),
-          email: data.email
+          email: data.email,
+          department_id: data.department_id
         });
         setIsAuthenticated(true);
       } else if (error) {

@@ -14,19 +14,28 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      [_ in string]: {
+        Row: any;
+        Insert: any;
+        Update: any;
+      }
     }
     Views: {
-      [_ in never]: never
+      [_ in string]: {
+        Row: any;
+      }
     }
     Functions: {
-      [_ in never]: never
+      [_ in string]: {
+        Args: any;
+        Returns: any;
+      }
     }
     Enums: {
-      [_ in never]: never
+      [_ in string]: any
     }
     CompositeTypes: {
-      [_ in never]: never
+      [_ in string]: any
     }
   }
 }

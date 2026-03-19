@@ -1,131 +1,344 @@
-import { motion } from "framer-motion";
-import { 
-  GitBranch, Search, Filter, AlertTriangle, 
-  ArrowRightCircle, CheckCircle2, History 
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  GitBranch, Search, AlertTriangle,
+  ArrowRightCircle, CheckCircle2, Loader2, ChevronRight,
+  UserCircle, Eye, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader,
+  DialogTitle, DialogTrigger, DialogFooter
+} from "@/components/ui/dialog";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
 
-const STUDENTS = [
-  { 
-    id: 1, 
-    name: "Alex Kipronoh", 
-    dept: "IHRS", 
-    currentStage: "Department Level",
-    status: "Corrections Verified",
-    supervisorStatus: "Approved",
-    readyToAdvance: true
-  },
-  { 
-    id: 2, 
-    name: "Sarah Omolo", 
-    dept: "CMJ", 
-    currentStage: "Department Level",
-    status: "Pending Corrections",
-    supervisorStatus: "Reviewing",
-    readyToAdvance: false
-  },
+// Full ordered pipeline stages
+const PIPELINE_STAGES = [
+  'DEPT_SEMINAR_PENDING',
+  'DEPT_SEMINAR_BOOKED',
+  'DEPT_SEMINAR_COMPLETED',
+  'SCHOOL_SEMINAR_PENDING',
+  'SCHOOL_SEMINAR_BOOKED',
+  'SCHOOL_SEMINAR_COMPLETED',
+  'THESIS_READINESS_CHECK',
+  'PG_EXAMINATION',
+  'VIVA_SCHEDULED',
+  'CORRECTIONS',
+  'COMPLETED'
 ];
 
-export function StudentProgressControl() {
-  const [searchTerm, setSearchTerm] = useState("");
+const stageColor = (stage: string) => {
+  if (stage === 'COMPLETED') return 'bg-success/10 text-success border-success/20';
+  if (stage?.includes('PENDING')) return 'bg-status-warning/10 text-status-warning border-status-warning/20';
+  if (stage?.includes('BOOKED')) return 'bg-secondary/10 text-secondary border-secondary/20';
+  if (stage?.includes('COMPLETED')) return 'bg-primary/10 text-primary border-primary/20';
+  if (stage === 'CORRECTIONS') return 'bg-destructive/10 text-destructive border-destructive/20';
+  return 'bg-muted text-muted-foreground border-border';
+};
 
-  const handleAdvance = (student: string) => {
-    toast.success(`${student} Advanced to School Level`, {
-      description: "Student is now in the School Admin Queue."
-    });
+export function StudentProgressControl() {
+  const { user } = useRole();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<any[]>([]);
+  const [advancing, setAdvancing] = useState<string | null>(null);
+  const [reverting, setReverting] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
+  useEffect(() => { fetchDepartmentRoster(); }, [user]);
+
+  const fetchDepartmentRoster = async () => {
+    setLoading(true);
+    try {
+      // Fetch all students then filter by dept on client side (avoids complex nested query syntax)
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          user:user_id(first_name, last_name, email),
+          programme:programme_id(name, department_id, department:department_id(name, id)),
+          evaluations(id, recommendation, evaluation_type, created_at, comments)
+        `)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      let filtered = data || [];
+      if (user?.department_id) {
+        filtered = filtered.filter((s: any) =>
+          s.programme?.department_id === user.department_id ||
+          s.programme?.department?.id === user.department_id
+        );
+      }
+
+      setStudents(filtered);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load department roster.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleAdvance = async (student: any) => {
+    const currentIndex = PIPELINE_STAGES.indexOf(student.current_stage);
+    if (currentIndex === -1 || currentIndex >= PIPELINE_STAGES.length - 1) {
+      toast.error("Terminal Stage", { description: "Cannot advance beyond graduation." });
+      return;
+    }
+    const nextStage = PIPELINE_STAGES[currentIndex + 1];
+    const name = `${student.user?.first_name} ${student.user?.last_name}`;
+    setAdvancing(student.id);
+    try {
+      // @ts-ignore
+      const { error } = await supabase
+        .from('students')
+        .update({ current_stage: nextStage })
+        .eq('id', student.id);
+      if (error) throw error;
+
+      toast.success("Stage Advanced", {
+        description: `${name} → ${nextStage.replace(/_/g, ' ')}.`
+      });
+      fetchDepartmentRoster();
+    } catch (err: any) {
+      toast.error("Advance Failed", { description: err.message });
+    } finally {
+      setAdvancing(null);
+    }
+  };
+
+  const handleRevert = async (student: any) => {
+    const currentIndex = PIPELINE_STAGES.indexOf(student.current_stage);
+    if (currentIndex <= 0) {
+      toast.error("Already at first stage.");
+      return;
+    }
+    const prevStage = PIPELINE_STAGES[currentIndex - 1];
+    const name = `${student.user?.first_name} ${student.user?.last_name}`;
+    setReverting(student.id);
+    try {
+      // @ts-ignore
+      const { error } = await supabase
+        .from('students')
+        .update({ current_stage: prevStage })
+        .eq('id', student.id);
+      if (error) throw error;
+
+      toast.warning("Stage Reverted", {
+        description: `${name} reverted to ${prevStage.replace(/_/g, ' ')}.`
+      });
+      fetchDepartmentRoster();
+    } catch (err: any) {
+      toast.error("Revert Failed", { description: err.message });
+    } finally {
+      setReverting(null);
+    }
+  };
+
+  const filteredStudents = students.filter(s =>
+    `${s.user?.first_name} ${s.user?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.registration_number || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return (
+    <div className="h-96 flex items-center justify-center">
+      <Loader2 className="animate-spin text-primary" size={40} />
+    </div>
+  );
+
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-card p-4 rounded-xl border border-border/50">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <GitBranch className="text-primary" />
-            Student Progress Control
+          <h2 className="text-2xl font-black text-foreground flex items-center gap-3">
+            <GitBranch className="text-primary" size={28} /> Student Progress Control
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">Manually adjust student stages and forward cleared students to the School level.</p>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">
+            Manually control student pipeline stages within your department.
+          </p>
         </div>
-        <div className="relative w-full md:w-64">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-           <Input 
-             placeholder="Search active students..." 
-             className="pl-9 h-9 text-sm rounded-lg bg-muted/20"
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-           />
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={16} />
+          <Input
+            placeholder="Search by name or reg. number..."
+            className="pl-9 h-11 text-sm rounded-xl"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-xl overflow-hidden border border-border">
-         <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Department Roster</h3>
-            <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
-               <Filter size={14} /> Filter Current Stage
-            </Button>
-         </div>
-         
-         <Table>
-           <TableHeader className="bg-background">
-             <TableRow>
-               <TableHead className="font-bold">Student Name</TableHead>
-               <TableHead className="font-bold">Programme</TableHead>
-               <TableHead className="font-bold">Current Status</TableHead>
-               <TableHead className="font-bold whitespace-nowrap">Supervisor Status</TableHead>
-               <TableHead className="text-right font-bold">Stage Action</TableHead>
-             </TableRow>
-           </TableHeader>
-           <TableBody>
-             {STUDENTS.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((student) => (
-               <TableRow key={student.id}>
-                 <TableCell className="font-medium text-foreground">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                        {student.name.charAt(0)}
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Total Students", count: students.length, color: "text-primary", bg: "bg-primary/10" },
+          { label: "In Progress", count: students.filter(s => !['COMPLETED', 'CORRECTIONS'].includes(s.current_stage)).length, color: "text-secondary", bg: "bg-secondary/10" },
+          { label: "In Corrections", count: students.filter(s => s.current_stage === 'CORRECTIONS').length, color: "text-destructive", bg: "bg-destructive/10" },
+          { label: "Graduated", count: students.filter(s => s.current_stage === 'COMPLETED').length, color: "text-success", bg: "bg-success/10" },
+        ].map(stat => (
+          <motion.div key={stat.label} variants={itemVariants} className={`p-4 rounded-xl border border-border ${stat.bg} flex items-center gap-4`}>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">{stat.label}</p>
+              <p className={`text-3xl font-black mt-0.5 ${stat.color}`}>{stat.count}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Roster Table */}
+      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-2xl overflow-hidden border border-border shadow-md">
+        <div className="p-5 border-b border-border bg-muted/10 flex justify-between items-center">
+          <h3 className="font-black text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <UserCircle size={14} /> Department Roster ({filteredStudents.length})
+          </h3>
+          <Badge variant="outline" className="font-bold text-[9px] uppercase bg-secondary/10 text-secondary border-secondary/20 px-3 py-1">
+            {students.length} enrolled
+          </Badge>
+        </div>
+
+        <Table>
+          <TableHeader className="bg-muted/5">
+            <TableRow className="border-b border-border/40 hover:bg-transparent">
+              <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4 px-6">Student</TableHead>
+              <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4">Programme</TableHead>
+              <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4">Current Stage</TableHead>
+              <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4 px-6">Controls</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <AnimatePresence>
+              {filteredStudents.map((student) => (
+                <TableRow key={student.id} className="group hover:bg-muted/20 transition-colors border-b border-border/40 last:border-0">
+                  <TableCell className="py-5 px-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xs font-black">
+                        {student.user?.first_name?.[0]}{student.user?.last_name?.[0]}
                       </div>
-                      <div className="leading-tight">
-                         <span className="block">{student.name}</span>
-                         <span className="text-[10px] text-muted-foreground font-semibold">{student.currentStage}</span>
+                      <div>
+                        <span className="block font-black text-[15px] group-hover:text-primary transition-colors">
+                          {student.user?.first_name} {student.user?.last_name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{student.registration_number}</span>
                       </div>
                     </div>
-                 </TableCell>
-                 <TableCell>
-                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider bg-muted/20">{student.dept}</Badge>
-                 </TableCell>
-                 <TableCell>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase flex items-center w-fit gap-1 ${
-                       student.status === "Corrections Verified" ? "bg-success/10 text-success" : "bg-status-warning/10 text-status-warning"
-                    }`}>
-                       {student.status === "Corrections Verified" ? <CheckCircle2 size={10} /> : <AlertTriangle size={10} />}
-                       {student.status}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-background border-border/60">
+                      {student.programme?.name || "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border inline-flex items-center gap-1.5 ${stageColor(student.current_stage)}`}>
+                      <ChevronRight size={10} />
+                      {student.current_stage?.replace(/_/g, ' ')}
                     </span>
-                 </TableCell>
-                 <TableCell>
-                    <span className="text-xs font-semibold text-muted-foreground">{student.supervisorStatus}</span>
-                 </TableCell>
-                 <TableCell className="text-right">
-                    {student.readyToAdvance ? (
-                       <Button size="sm" className="h-8 bg-secondary hover:bg-secondary/90 text-xs font-bold uppercase tracking-wider w-full max-w-[200px]" onClick={() => handleAdvance(student.name)}>
-                          Forward to School <ArrowRightCircle size={14} className="ml-1.5" />
-                       </Button>
-                    ) : (
-                       <Button variant="outline" size="sm" disabled className="h-8 text-[10px] font-bold uppercase w-full max-w-[200px] border-dashed">
-                          Incomplete Requirements
-                       </Button>
-                    )}
-                 </TableCell>
-               </TableRow>
-             ))}
-           </TableBody>
-         </Table>
+                  </TableCell>
+                  <TableCell className="text-right py-5 px-6">
+                    <div className="flex justify-end items-center gap-2">
+                      {/* View Details */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-3 text-[10px] font-black uppercase rounded-xl border-border"
+                            onClick={() => setSelectedStudent(student)}
+                          >
+                            <Eye size={14} className="mr-1" /> Details
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-2xl max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle className="font-black text-xl">
+                              {student.user?.first_name} {student.user?.last_name}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="py-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="bg-muted/10 p-3 rounded-xl border border-border/40">
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-1">Reg. Number</p>
+                                <p className="font-black font-mono">{student.registration_number}</p>
+                              </div>
+                              <div className="bg-muted/10 p-3 rounded-xl border border-border/40">
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-1">Programme</p>
+                                <p className="font-black">{student.programme?.name || '—'}</p>
+                              </div>
+                              <div className="bg-muted/10 p-3 rounded-xl border border-border/40 col-span-2">
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-1">Current Stage</p>
+                                <p className="font-black">{student.current_stage?.replace(/_/g, ' ')}</p>
+                              </div>
+                              <div className="bg-muted/10 p-3 rounded-xl border border-border/40 col-span-2">
+                                <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-1">Email</p>
+                                <p className="font-mono text-xs">{student.user?.email || '—'}</p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-2">Evaluation History</p>
+                              {(student.evaluations || []).length === 0 ? (
+                                <p className="text-xs text-muted-foreground italic">No evaluations recorded yet.</p>
+                              ) : (
+                                student.evaluations.slice(0, 5).map((ev: any) => (
+                                  <div key={ev.id} className="text-xs p-2 bg-muted/10 rounded border border-border/30 mb-2">
+                                    <span className="font-black">{ev.evaluation_type?.replace(/_/g, ' ')}</span> — {ev.recommendation}
+                                    {ev.comments && <p className="text-muted-foreground mt-0.5 italic">"{ev.comments}"</p>}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      {/* Revert */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-3 text-[10px] font-black uppercase rounded-xl border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/30"
+                        disabled={reverting === student.id || PIPELINE_STAGES.indexOf(student.current_stage) <= 0}
+                        onClick={() => handleRevert(student)}
+                      >
+                        {reverting === student.id
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <RotateCcw size={14} />}
+                      </Button>
+
+                      {/* Advance */}
+                      <Button
+                        size="sm"
+                        className="h-9 px-5 bg-secondary hover:bg-secondary/90 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md"
+                        disabled={advancing === student.id || student.current_stage === 'COMPLETED'}
+                        onClick={() => handleAdvance(student)}
+                      >
+                        {advancing === student.id
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <><ArrowRightCircle size={14} className="mr-1.5" /> Advance</>}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </AnimatePresence>
+            {filteredStudents.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-20 text-center opacity-40">
+                  <p className="font-black text-xs uppercase tracking-widest">No students found</p>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </motion.div>
     </motion.div>
   );

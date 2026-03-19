@@ -16,25 +16,6 @@ import { containerVariants, itemVariants } from "@/lib/animations";
 import { useRole } from "@/contexts/RoleContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const STUDENTS = [
-  { id: 1, name: "Omondi Okech", topic: "ML-Based Crop Disease Detection", stage: "First Draft", days: 18, status: "warning" },
-  { id: 2, name: "Faith Nyambura", topic: "Blockchain in Land Registry", stage: "Ethics Clearance", days: 5, status: "on-track" },
-  { id: 3, name: "Kevin Odhiambo", topic: "NLP for Dholuo Language Preservation", stage: "Data Collection", days: 32, status: "overdue" },
-  { id: 4, name: "Mercy Chebet", topic: "Solar Microgrid Optimization", stage: "Final Submission Pending", days: 8, status: "on-track" },
-  { id: 5, name: "Brian Mutua", topic: "IoT Water Quality Monitoring", stage: "Proposal Review", days: 25, status: "warning" },
-];
-
-const PENDING_REPORTS = [
-  { id: 101, student: "Omondi Okech", type: "Q4 2025 Report", submitted: "March 12, 2026", urgency: "High" },
-  { id: 102, student: "Kevin Odhiambo", type: "Q1 2026 Report", submitted: "March 15, 2026", urgency: "Normal" },
-];
-
-const STATUS_MAP: Record<string, { label: string; classes: string }> = {
-  "on-track": { label: "On Track", classes: "bg-success/10 text-success border-success/20" },
-  "warning": { label: "Stalled", classes: "bg-status-warning/10 text-status-warning border-status-warning/20" },
-  "overdue": { label: "Critical Delay", classes: "bg-destructive/10 text-destructive border-destructive/20 animate-pulse" },
-};
-
 export function SupervisorDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [students, setStudents] = useState<any[]>([]);
@@ -74,9 +55,9 @@ export function SupervisorDashboard() {
                  )
                `)
                .in('student_id', sIds)
-               .eq('status', 'PENDING');
+               .eq('status', 'PENDING_SUPERVISOR');
              
-             if (reportsData) setPendingReports(reportsData);
+             setPendingReports(reportsData || []);
           }
        }
     } catch (err) {
@@ -243,7 +224,6 @@ export function SupervisorDashboard() {
             </div>
          </motion.div>
       </div>
-
     </motion.div>
   );
 }
