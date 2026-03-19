@@ -67,7 +67,7 @@ export function ProgressReportsSubmission() {
           year,
           synopsis,
           file_url: "institutional_storage/reports/placeholder.pdf",
-          status: 'PENDING'
+          status: 'PENDING_SUPERVISOR'
        });
 
        if (error) throw error;
@@ -199,29 +199,29 @@ export function ProgressReportsSubmission() {
             </h3>
             
             <div className="space-y-4">
-               {pastReports.map((report, i) => (
-                  <div key={i} className={`bg-card p-5 rounded-xl border border-border shadow-sm hover:border-primary/30 transition-colors group cursor-pointer relative overflow-hidden ${report.status === 'Pending' ? 'bg-primary/5 border-primary/20' : ''}`}>
-                     <div className={`absolute top-0 left-0 w-1 h-full ${report.status === 'Approved' ? 'bg-success' : 'bg-status-warning'}`} />
+                {pastReports.map((report, i) => (
+                  <div key={i} className={`bg-card p-5 rounded-xl border border-border shadow-sm hover:border-primary/30 transition-colors group cursor-pointer relative overflow-hidden ${report.status.startsWith('PENDING') ? 'bg-primary/5 border-primary/20' : ''}`}>
+                     <div className={`absolute top-0 left-0 w-1 h-full ${report.status === 'APPROVED' ? 'bg-success' : 'bg-status-warning'}`} />
                      
                      <div className="flex justify-between items-start mb-3">
-                        <Badge variant="outline" className={`bg-muted text-[10px] font-bold tracking-wider uppercase border-transparent ${report.status === 'Pending' ? 'bg-primary/20 text-primary' : ''}`}>
+                        <Badge variant="outline" className={`bg-muted text-[10px] font-bold tracking-wider uppercase border-transparent ${report.status.startsWith('PENDING') ? 'bg-primary/20 text-primary' : ''}`}>
                            {report.quarter}
                         </Badge>
                         <span className={`text-[10px] uppercase font-bold flex items-center gap-1 px-2 py-0.5 rounded ${
-                           report.status === 'Approved' 
+                           report.status === 'APPROVED' 
                               ? 'bg-success/10 text-success' 
                               : 'bg-status-warning/10 text-status-warning'
                         }`}>
-                           <CheckCircle2 size={12}/> {report.status}
+                           <CheckCircle2 size={12}/> {report.status.replace('_', ' ')}
                         </span>
                      </div>
                      
                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 mb-3">
-                        <FileText size={14}/> Submitted: {report.date}
+                        <FileText size={14}/> Submitted: {new Date(report.created_at).toLocaleDateString()}
                      </p>
                      
                      <div className={`p-3 rounded text-[11px] italic leading-relaxed border ${
-                        report.status === 'PENDING'
+                        report.status.startsWith('PENDING')
                            ? 'bg-primary/10 text-primary/80 border-primary/20'
                            : 'bg-muted/40 text-muted-foreground border-border/50'
                      }`}>

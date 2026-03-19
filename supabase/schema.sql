@@ -22,7 +22,7 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE status_code_type AS ENUM (
-      'PENDING', 'APPROVED', 'RETURNED', 'REJECTED'
+      'PENDING_SUPERVISOR', 'PENDING_DEPT', 'APPROVED', 'RETURNED', 'REJECTED'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -296,14 +296,39 @@ CREATE POLICY "Students view own profile" ON public.students FOR SELECT USING (a
 CREATE POLICY "Students insert own reports" ON public.progress_reports FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
 );
+
 CREATE POLICY "Students view own reports" ON public.progress_reports FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
 );
+
 CREATE POLICY "Supervisors view mentee reports" ON public.progress_reports FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
 );
+
 CREATE POLICY "Supervisors update mentee reports" ON public.progress_reports FOR UPDATE USING (
   EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
+);
+
+CREATE POLICY "Coordinators view department reports" ON public.progress_reports FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.users u 
+    JOIN public.students s ON s.id = student_id
+    JOIN public.programmes p ON p.id = s.programme_id
+    WHERE u.id = auth.uid() 
+    AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
+    AND u.department_id = p.department_id
+  )
+);
+
+CREATE POLICY "Coordinators update department reports" ON public.progress_reports FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM public.users u 
+    JOIN public.students s ON s.id = student_id
+    JOIN public.programmes p ON p.id = s.programme_id
+    WHERE u.id = auth.uid() 
+    AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
+    AND u.department_id = p.department_id
+  )
 );
 
 -- 4. SEMINAR BOOKINGS POLICIES

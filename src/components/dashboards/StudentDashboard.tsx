@@ -3,6 +3,7 @@ import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Calendar, FileText, Loa
 import { PipelineRail } from "@/components/PipelineRail";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { containerVariants, itemVariants } from "@/lib/animations";
@@ -24,7 +25,8 @@ export function StudentDashboard() {
     try {
       // 1. Fetch Student Profile & Stage
       // @ts-ignore
-      const { data: sData } = await supabase.from('students').select('*').eq('user_id', user.id).single();
+      const { data: sData, error: sError } = await supabase.from('students').select('*').eq('user_id', user.id).maybeSingle();
+      
       if (sData) {
         setStudentInfo(sData);
 
@@ -198,8 +200,4 @@ export function StudentDashboard() {
       </motion.div>
     </motion.div>
   );
-}
-
-// Re-using Shadcn Badge instead of custom spans for premium feel
-import { Badge } from "@/components/ui/badge";
 }

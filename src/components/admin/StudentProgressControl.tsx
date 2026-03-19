@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   GitBranch, Search, Filter, AlertTriangle, 
-  ArrowRightCircle, CheckCircle2, History 
+  ArrowRightCircle, CheckCircle2, Loader2, ChevronRight, UserCircle 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,119 +11,168 @@ import {
   TableHeader, TableRow 
 } from "@/components/ui/table";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-
-const STUDENTS = [
-  { 
-    id: 1, 
-    name: "Alex Kipronoh", 
-    dept: "IHRS", 
-    currentStage: "Department Level",
-    status: "Corrections Verified",
-    supervisorStatus: "Approved",
-    readyToAdvance: true
-  },
-  { 
-    id: 2, 
-    name: "Sarah Omolo", 
-    dept: "CMJ", 
-    currentStage: "Department Level",
-    status: "Pending Corrections",
-    supervisorStatus: "Reviewing",
-    readyToAdvance: false
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
 
 export function StudentProgressControl() {
+  const { user } = useRole();
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<any[]>([]);
 
-  const handleAdvance = (student: string) => {
-    toast.success(`${student} Advanced to School Level`, {
-      description: "Student is now in the School Admin Queue."
-    });
+  useEffect(() => {
+    if (user?.department_id) fetchDepartmentRoster();
+  }, [user]);
+
+  const fetchDepartmentRoster = async () => {
+    setLoading(true);
+    try {
+      // @ts-ignore
+      const { data } = await supabase
+        .from('students')
+        .select(`
+          *,
+          user:user_id(first_name, last_name),
+          programme:programme_id(name)
+        `)
+        .eq('programme!inner(department_id)', user.department_id);
+      
+      setStudents(data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Roster Synchronization Failure");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleAdvance = async (studentId: string, currentStage: string, name: string) => {
+    // Basic progression logic: PENDING -> COMPLETED -> SCHOOL_PENDING -> SCHOOL_COMPLETED -> READINESS -> EXAM -> VIVA -> CORRECTIONS -> DONE
+    const stages = [
+      'DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED',
+      'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED',
+      'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 
+      'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'
+    ];
+    
+    const currentIndex = stages.indexOf(currentStage);
+    if (currentIndex === -1 || currentIndex === stages.length - 1) {
+       toast.error("Terminal Stage Reached", { description: "Cannot advance beyond completion protocol." });
+       return;
+    }
+
+    const nextStage = stages[currentIndex + 1];
+
+    try {
+      // @ts-ignore
+      const { error } = await supabase
+        .from('students')
+        .update({ current_stage: nextStage })
+        .eq('id', studentId);
+      
+      if (error) throw error;
+
+      toast.success("Architectural Stage Advanced", {
+        description: `${name} has been moved to ${nextStage.replace(/_/g, ' ')}.`
+      });
+      fetchDepartmentRoster();
+    } catch (err) {
+      toast.error("Manual Override Failed");
+    }
+  };
+
+  if (loading) return (
+     <div className="h-96 flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+     </div>
+  );
+
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-card p-4 rounded-xl border border-border/50">
-        <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <GitBranch className="text-primary" />
-            Student Progress Control
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">Manually adjust student stages and forward cleared students to the School level.</p>
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 bg-card/60 backdrop-blur-md p-8 rounded-[2rem] border border-border/50 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none scale-150">
+           <GitBranch size={100} />
         </div>
-        <div className="relative w-full md:w-64">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+        <div className="relative z-10">
+          <h2 className="text-2xl font-black text-foreground flex items-center gap-3 tracking-tight">
+            <GitBranch className="text-primary" size={28} />
+            Departmental Roster Control
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 font-medium max-w-md italic">Manually calibrate student progression stages for the academic administrative pipeline.</p>
+        </div>
+        <div className="relative w-full md:w-80 z-10">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={16} />
            <Input 
-             placeholder="Search active students..." 
-             className="pl-9 h-9 text-sm rounded-lg bg-muted/20"
+             placeholder="Search active candidates..." 
+             className="pl-9 h-12 text-sm rounded-2xl bg-background border-border shadow-inner"
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
            />
         </div>
       </div>
 
-      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-xl overflow-hidden border border-border">
-         <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Department Roster</h3>
-            <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
-               <Filter size={14} /> Filter Current Stage
-            </Button>
+      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-3xl overflow-hidden border border-border/50 shadow-xl">
+         <div className="p-6 border-b border-border bg-muted/20 flex justify-between items-center">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+               <UserCircle size={14} /> Official Roster Matrix
+            </h3>
+            <Badge variant="outline" className="font-bold text-[9px] uppercase bg-secondary/10 text-secondary border-secondary/20 px-3 py-1">
+               {students.length} Candidates Enrolled
+            </Badge>
          </div>
          
          <Table>
-           <TableHeader className="bg-background">
-             <TableRow>
-               <TableHead className="font-bold">Student Name</TableHead>
-               <TableHead className="font-bold">Programme</TableHead>
-               <TableHead className="font-bold">Current Status</TableHead>
-               <TableHead className="font-bold whitespace-nowrap">Supervisor Status</TableHead>
-               <TableHead className="text-right font-bold">Stage Action</TableHead>
+           <TableHeader className="bg-muted/5">
+             <TableRow className="border-b border-border/40 hover:bg-transparent">
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-5 px-8">Candidate Identity</TableHead>
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-5">Program Domain</TableHead>
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-5">Architectural Status</TableHead>
+               <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-muted-foreground py-5 px-8">Protocol Override</TableHead>
              </TableRow>
            </TableHeader>
            <TableBody>
-             {STUDENTS.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((student) => (
-               <TableRow key={student.id}>
-                 <TableCell className="font-medium text-foreground">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                        {student.name.charAt(0)}
+             <AnimatePresence>
+             {students
+               .filter(s => `${s.user?.first_name} ${s.user?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || s.registration_number.toLowerCase().includes(searchTerm.toLowerCase()))
+               .map((student) => (
+               <TableRow key={student.id} className="group hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0">
+                 <TableCell className="py-5 px-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-xs font-black shadow-inner">
+                        {student.user?.first_name?.charAt(0)}{student.user?.last_name?.charAt(0)}
                       </div>
                       <div className="leading-tight">
-                         <span className="block">{student.name}</span>
-                         <span className="text-[10px] text-muted-foreground font-semibold">{student.currentStage}</span>
+                         <span className="block font-black text-[15px] group-hover:text-primary transition-colors">{student.user?.first_name} {student.user?.last_name}</span>
+                         <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter opacity-70">{student.registration_number}</span>
                       </div>
                     </div>
                  </TableCell>
                  <TableCell>
-                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider bg-muted/20">{student.dept}</Badge>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-background border-border/60 px-2.5 py-1 rounded-lg italic">
+                      {student.programme?.name || "Unmapped Domain"}
+                    </Badge>
                  </TableCell>
                  <TableCell>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase flex items-center w-fit gap-1 ${
-                       student.status === "Corrections Verified" ? "bg-success/10 text-success" : "bg-status-warning/10 text-status-warning"
-                    }`}>
-                       {student.status === "Corrections Verified" ? <CheckCircle2 size={10} /> : <AlertTriangle size={10} />}
-                       {student.status}
-                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-black uppercase text-foreground tracking-tight flex items-center gap-1.5">
+                         <ChevronRight size={12} className="text-primary" /> {student.current_stage.replace(/_/g, ' ')}
+                      </span>
+                    </div>
                  </TableCell>
-                 <TableCell>
-                    <span className="text-xs font-semibold text-muted-foreground">{student.supervisorStatus}</span>
-                 </TableCell>
-                 <TableCell className="text-right">
-                    {student.readyToAdvance ? (
-                       <Button size="sm" className="h-8 bg-secondary hover:bg-secondary/90 text-xs font-bold uppercase tracking-wider w-full max-w-[200px]" onClick={() => handleAdvance(student.name)}>
-                          Forward to School <ArrowRightCircle size={14} className="ml-1.5" />
-                       </Button>
-                    ) : (
-                       <Button variant="outline" size="sm" disabled className="h-8 text-[10px] font-bold uppercase w-full max-w-[200px] border-dashed">
-                          Incomplete Requirements
-                       </Button>
-                    )}
+                 <TableCell className="text-right py-5 px-8">
+                    <Button 
+                      size="sm" 
+                      className="h-10 px-6 bg-secondary hover:bg-secondary/90 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/20 rounded-xl transition-all active:scale-[0.98] group/btn" 
+                      onClick={() => handleAdvance(student.id, student.current_stage, student.user?.first_name)}
+                    >
+                       Advance Stage <ArrowRightCircle size={14} className="ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
                  </TableCell>
                </TableRow>
              ))}
+             </AnimatePresence>
            </TableBody>
          </Table>
       </motion.div>

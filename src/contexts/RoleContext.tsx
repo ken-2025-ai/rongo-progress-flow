@@ -10,6 +10,7 @@ interface RoleUser {
   role: UserRole;
   avatar: string;
   department?: string;
+  department_id?: string;
   email?: string;
 }
 
@@ -133,7 +134,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
           name: `${data.first_name || ""} ${data.last_name || ""}`,
           role: mappedRole,
           avatar: (data.first_name?.[0] || "") + (data.last_name?.[0] || ""),
-          email: data.email
+          email: data.email,
+          department_id: data.department_id
         });
         setIsAuthenticated(true);
       } else if (error) {

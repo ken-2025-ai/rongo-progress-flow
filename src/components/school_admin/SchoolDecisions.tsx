@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { 
   FileBarChart, Search, Filter, CheckCircle2, 
-  AlertTriangle, PlayCircle, Shield
+  AlertTriangle, PlayCircle, Shield, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -11,103 +11,151 @@ import {
   TableHeader, TableRow 
 } from "@/components/ui/table";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { useState } from "react";
-
-const DECISION_LOGS = [
-  { 
-    id: 1, 
-    date: "April 16, 2026", 
-    student: "John Musyoka", 
-    dept: "IHRS", 
-    level: "School Seminar",
-    decision: "Cleared for PG Examination",
-    recordedBy: "Prof. Oduor (School Admin)"
-  },
-  { 
-    id: 2, 
-    date: "March 19, 2026", 
-    student: "Mercy Wanjala", 
-    dept: "CMJ", 
-    level: "School Seminar",
-    decision: "Major Corrections",
-    recordedBy: "Prof. Oduor (School Admin)"
-  },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
+import { toast } from "sonner";
 
 export function SchoolDecisions() {
+  const { user } = useRole();
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [user]);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select(`
+          *,
+          student:student_id(
+             registration_number,
+             user:user_id(first_name, last_name),
+             programme:programme_id(department:department_id(name, school_id))
+          )
+        `)
+        .eq('evaluation_type', 'SCHOOL_SEMINAR')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      let filtered = data || [];
+      // If we had the school_id of the user, we'd filter here. 
+      // For now, show all school seminars as it's often a shared board for school admins.
+      
+      setLogs(filtered);
+    } catch (err) {
+      console.error(err);
+      toast.error("Resource Sync Failure", { description: "Institutional history logs could not be retrieved." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return (
+     <div className="h-64 flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+     </div>
+  );
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-card p-4 rounded-xl border border-border/50">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto pb-10">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 bg-card/40 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <FileBarChart className="text-secondary" />
+          <h2 className="text-xl font-black text-foreground flex items-center gap-3">
+            <FileBarChart className="text-secondary" size={24} />
             School Decision History
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">Official audit log of all 3rd Thursday School Seminar outcomes.</p>
+          <p className="text-xs text-muted-foreground mt-1 font-medium italic italic">Official audit log of all 3rd Thursday School Seminar outcomes.</p>
         </div>
-        <div className="relative w-full md:w-64">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+        <div className="relative w-full md:w-80">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={18} />
            <Input 
-             placeholder="Search records..." 
-             className="pl-9 h-9 text-sm rounded-lg bg-muted/20"
+             placeholder="Search by student or consensus..." 
+             className="pl-10 h-11 text-sm rounded-xl bg-background border-border/60"
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
            />
         </div>
       </div>
 
-      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-xl overflow-hidden border border-border">
-         <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
-            <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Historical Records</h3>
-            <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
+      <motion.div variants={itemVariants} className="card-shadow bg-card rounded-2xl overflow-hidden border border-border/60 shadow-lg">
+         <div className="p-5 border-b border-border/50 bg-muted/10 flex justify-between items-center">
+            <h3 className="font-black text-[10px] uppercase tracking-widest text-muted-foreground">Historical Records ({logs.length})</h3>
+            <Button variant="outline" size="sm" className="h-9 gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl">
                <Filter size={14} /> Filter Log
             </Button>
          </div>
          
          <Table>
-           <TableHeader className="bg-background">
-             <TableRow>
-               <TableHead className="font-bold whitespace-nowrap">Date Recorded</TableHead>
-               <TableHead className="font-bold">Candidate Identity</TableHead>
-               <TableHead className="font-bold whitespace-nowrap">Seminar Level</TableHead>
-               <TableHead className="font-bold text-center">Final Consensus</TableHead>
-               <TableHead className="text-right font-bold whitespace-nowrap">Recorded By</TableHead>
+           <TableHeader className="bg-muted/5">
+             <TableRow className="border-b border-border/40">
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4">Date Recorded</TableHead>
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4">Candidate Identity</TableHead>
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4">Seminar Level</TableHead>
+               <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4 text-center">Final Consensus</TableHead>
+               <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-muted-foreground py-4 pr-6">Recorded By</TableHead>
              </TableRow>
            </TableHeader>
            <TableBody>
-             {DECISION_LOGS.filter(s => s.student.toLowerCase().includes(searchTerm.toLowerCase())).map((log) => (
-               <TableRow key={log.id}>
-                 <TableCell className="font-medium text-xs text-muted-foreground uppercase">{log.date}</TableCell>
-                 <TableCell className="font-bold text-foreground">
-                    <div className="flex flex-col">
-                       {log.student}
-                       <Badge variant="outline" className="text-[9px] uppercase tracking-wider w-fit mt-1">{log.dept}</Badge>
-                    </div>
-                 </TableCell>
-                 <TableCell className="text-xs font-semibold">{log.level}</TableCell>
-                 <TableCell className="text-center">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase inline-flex items-center gap-1 border ${
-                       log.decision === "Cleared for PG Examination" ? "bg-success/10 text-success border-success/20" : 
-                       log.decision.includes("Minor") ? "bg-status-warning/10 text-status-warning border-status-warning/20" : 
-                       log.decision.includes("Major") ? "bg-destructive/10 text-destructive border-destructive/20" :
-                       "bg-muted text-foreground border-border"
-                    }`}>
-                       {log.decision.includes("Cleared") && <CheckCircle2 size={10} />}
-                       {log.decision.includes("Minor") && <AlertTriangle size={10} />}
-                       {log.decision.includes("Major") && <AlertTriangle size={10} />}
-                       {log.decision.includes("Repeat") && <PlayCircle size={10} />}
-                       {log.decision}
-                    </span>
-                 </TableCell>
-                 <TableCell className="text-right">
-                    <span className="text-xs font-semibold text-muted-foreground flex items-center justify-end gap-1.5">
-                       <Shield size={12} className="text-secondary/50" /> {log.recordedBy}
-                    </span>
-                 </TableCell>
-               </TableRow>
+             {logs
+               .filter(s => {
+                  const fullName = `${s.student?.user?.first_name} ${s.student?.user?.last_name}`.toLowerCase();
+                  const rec = (s.recommendation || "").toLowerCase();
+                  return fullName.includes(searchTerm.toLowerCase()) || rec.includes(searchTerm.toLowerCase());
+               })
+               .map((log) => (
+                <TableRow key={log.id} className="group hover:bg-muted/30 transition-colors border-b border-border/30 last:border-0 font-medium">
+                  <TableCell className="py-4 text-xs text-muted-foreground uppercase tabular-nums font-bold">
+                     {new Date(log.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="py-4">
+                     <div className="flex flex-col">
+                        <span className="font-black text-foreground">
+                           {log.student?.user?.first_name} {log.student?.user?.last_name}
+                        </span>
+                        <Badge variant="outline" className="text-[8px] uppercase tracking-[0.1em] w-fit mt-1.5 font-black bg-background/50 border-border/60">
+                           {(log.student?.programme?.department as any)?.name}
+                        </Badge>
+                     </div>
+                  </TableCell>
+                  <TableCell className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                     {log.evaluation_type?.replace(/_/g, ' ')}
+                  </TableCell>
+                  <TableCell className="text-center py-4">
+                     <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 border shadow-sm ${
+                        log.recommendation?.toLowerCase().includes("pass") || log.recommendation?.toLowerCase().includes("clear") 
+                        ? "bg-success/10 text-success border-success/20" : 
+                        log.recommendation?.toLowerCase().includes("minor") ? "bg-status-warning/10 text-status-warning border-status-warning/20" : 
+                        log.recommendation?.toLowerCase().includes("major") || log.recommendation?.toLowerCase().includes("fail") ? "bg-destructive/10 text-destructive border-destructive/20" :
+                        "bg-muted text-foreground border-border"
+                     }`}>
+                        {(log.recommendation?.toLowerCase().includes("pass") || log.recommendation?.toLowerCase().includes("clear")) && <CheckCircle2 size={12} />}
+                        {log.recommendation?.toLowerCase().includes("minor") && <AlertTriangle size={12} />}
+                        {(log.recommendation?.toLowerCase().includes("major") || log.recommendation?.toLowerCase().includes("fail")) && <AlertTriangle size={12} />}
+                        {log.recommendation }
+                     </span>
+                  </TableCell>
+                  <TableCell className="text-right py-4 pr-6">
+                     <span className="text-[10px] font-black text-muted-foreground flex items-center justify-end gap-2 italic uppercase tracking-wider">
+                        <Shield size={14} className="text-secondary/30" /> School Authority
+                     </span>
+                  </TableCell>
+                </TableRow>
              ))}
+             {logs.length === 0 && (
+                <TableRow>
+                   <TableCell colSpan={5} className="py-20 text-center italic text-muted-foreground text-xs uppercase tracking-widest opacity-60">
+                      No architectural decisions found in the school vault.
+                   </TableCell>
+                </TableRow>
+             )}
            </TableBody>
          </Table>
       </motion.div>
