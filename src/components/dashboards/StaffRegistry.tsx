@@ -7,10 +7,19 @@ import { containerVariants, itemVariants } from "@/lib/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const DEFAULT_PASSWORDS: Record<string, string> = {
+  SUPERVISOR: "supervisor",
+  DEPT_COORDINATOR: "pgcoordinator",
+  SCHOOL_COORDINATOR: "pgcoordinator",
+  PG_DEAN: "pgdean",
+  EXAMINER: "pgexaminer"
+};
+
 export function StaffRegistry() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [staffId, setStaffId] = useState("");
   const [selectedRole, setSelectedRole] = useState("SUPERVISOR");
   const [selectedDept, setSelectedDept] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,17 +33,24 @@ export function StaffRegistry() {
 
   const handleStaffProvisioning = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !selectedDept) {
-      toast.error("Schema Violation", { description: "Department and email are required for provision." });
+    if (!fullName || !email || !selectedDept || !staffId) {
+      toast.error("Schema Violation", { description: "Name, email, department, and Staff ID are required." });
+      return;
+    }
+
+    if (staffId.length < 4) {
+      toast.error("Validation Error", { description: "Institutional Staff ID must be at least 4 characters." });
       return;
     }
 
     setIsLoading(true);
+    const defaultPassword = DEFAULT_PASSWORDS[selectedRole] || "staffpassword";
+
     try {
-      // 1. Auth Provisioning
+      // 1. Auth Provisioning with role-based default password
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password: "StaffPassword123!", // In a real system, use invite system
+        password: defaultPassword,
         options: {
           data: {
             first_name: fullName.split(' ')[0],
@@ -84,16 +100,22 @@ export function StaffRegistry() {
                Provision institutional access for Lecturers, Coordinators, Examiners, and Deans. Assign roles, ranks, and examiner toggles with immediate effect.
             </p>
          </div>
-         <div className="flex shrink-0">
-            <Button 
-              onClick={handleStaffProvisioning}
-              disabled={isLoading}
-              className="h-10 px-6 bg-secondary hover:bg-secondary/90 text-white font-bold text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-            >
-               {isLoading ? "Provisioning..." : "Provision Staff Account"}
-            </Button>
+            <div className="pt-4 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Default Credentials</span>
+                <span className="text-secondary font-mono text-xs font-black tracking-tight mt-0.5 uppercase italic">
+                  Password: {DEFAULT_PASSWORDS[selectedRole] || "staffpassword"}
+                </span>
+              </div>
+              <Button 
+                onClick={handleStaffProvisioning}
+                disabled={isLoading}
+                className="h-10 px-6 bg-secondary hover:bg-secondary/90 text-white font-bold text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+              >
+                 {isLoading ? "Provisioning..." : "Provision Staff Account"}
+              </Button>
+            </div>
          </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
          {/* Manual Provision Form */}
@@ -158,6 +180,17 @@ export function StaffRegistry() {
                         </select>
                      </div>
 
+                     <div className="space-y-1.5 pt-2">
+                        <label className="text-xs font-bold text-foreground font-mono tracking-tighter">Institutional Staff ID (UPI)</label>
+                        <Input 
+                          className="h-11 bg-background font-mono font-bold border-secondary/30" 
+                          placeholder="e.g. RU/PG/1001" 
+                          value={staffId}
+                          onChange={e => setStaffId(e.target.value)}
+                        />
+                        <p className="text-[9px] text-muted-foreground">Required: Minimum 4 characters.</p>
+                     </div>
+
                      <div className="pt-4 mt-2 border-t border-border/50">
                         <label className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 cursor-pointer transition-colors">
                            <input type="checkbox" className="h-4 w-4 bg-background border-border checked:bg-primary" defaultChecked />
@@ -175,13 +208,13 @@ export function StaffRegistry() {
          {/* UPI Generator Display */}
          <motion.div variants={itemVariants} className="md:col-span-2 bg-gradient-to-r from-card to-secondary/5 rounded-2xl border border-secondary/20 shadow-sm p-6 flex flex-col items-center justify-center text-center">
             <Hash size={32} className="text-secondary/50 mb-3" />
-            <h3 className="font-bold text-sm text-foreground uppercase tracking-widest mb-1">Projected UPI (Universal Personnel Identifier)</h3>
+            <h3 className="font-bold text-sm text-foreground uppercase tracking-widest mb-1">Assigned Institutional Identifier</h3>
             <div className="px-6 py-2 bg-background border-2 border-dashed border-secondary/40 rounded-lg shadow-inner mt-2">
-               <span className="text-2xl font-mono text-secondary font-black tracking-[0.2em]">UPI-{departments.find(d => d.id === selectedDept)?.name || "PG"}-01<span className="animate-pulse">_</span></span>
+               <span className="text-2xl font-mono text-secondary font-black tracking-widest">{staffId || "SPECIFY-ID"}</span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4 font-bold border-t border-border/50 pt-3">
                <Key size={10} className="inline mr-1" />
-               Generated algorithmically upon creation
+               Locked to personnel record
             </p>
          </motion.div>
       </div>

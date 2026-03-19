@@ -16,6 +16,7 @@ export function StudentRegistry() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [admissionNumber, setAdmissionNumber] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [selectedProg, setSelectedProg] = useState("");
@@ -33,17 +34,17 @@ export function StudentRegistry() {
 
   const handleStudentRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !selectedProg || !firstName) {
-       toast.error("Validation Error", { description: "Missing critical student data." });
+    if (!email || !selectedProg || !firstName || !admissionNumber) {
+       toast.error("Validation Error", { description: "Email, Programme, Name and Admission Number are required." });
        return;
     }
 
     setIsLoading(true);
     try {
-      // 1. Create Auth Account
+      // 1. Create Auth Account with default password "pgstudent"
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password: "StudentPassword123!",
+        password: "pgstudent",
         options: {
           data: { first_name: firstName, last_name: lastName }
         }
@@ -52,14 +53,11 @@ export function StudentRegistry() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Create Student Profile
-        const deptCode = departments.find(d => d.id === selectedDept)?.name || "PG";
-        const regNum = `RONGO/PG/${deptCode}/${intakeYear.slice(-2)}/${Math.floor(Math.random() * 900) + 100}`;
-        
+        // 2. Create Student Profile using manual Admission Number
         // @ts-ignore
         const { error: studentError } = await supabase.from('students').insert({
           user_id: authData.user.id,
-          registration_number: regNum,
+          registration_number: admissionNumber,
           programme_id: selectedProg,
           current_stage: 'DEPT_SEMINAR_PENDING'
         });
@@ -67,10 +65,10 @@ export function StudentRegistry() {
         if (studentError) throw studentError;
 
         toast.success("Registration Successful", {
-          description: `Scholastic record created: ${regNum}`,
+          description: `Scholastic record created: ${admissionNumber}`,
         });
         
-        setFirstName(""); setLastName(""); setEmail("");
+        setFirstName(""); setLastName(""); setEmail(""); setAdmissionNumber("");
       }
     } catch (err: any) {
       toast.error("Registration Failed", { description: err.message });
@@ -92,7 +90,11 @@ export function StudentRegistry() {
                Manually register a single scholar or use the bulk import tool to process a cohort via CSV. The system will automatically generate sequential Admission Numbers.
             </p>
          </div>
-         <div className="flex items-start gap-3 shrink-0">
+         <div className="flex items-center gap-4 shrink-0">
+            <div className="hidden md:flex flex-col items-end mr-2">
+               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Enrollment Key</span>
+               <span className="text-primary font-mono text-xs font-black leading-none mt-1">pgstudent</span>
+            </div>
             <Button variant="outline" className="border-dashed h-10 px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">
                <UploadCloud size={16} className="mr-2"/> Bulk CSV Import
             </Button>
@@ -189,6 +191,15 @@ export function StudentRegistry() {
                         <label className="text-xs font-bold text-foreground">Intake Year</label>
                         <Input className="h-11 bg-background" value={intakeYear} onChange={e => setIntakeYear(e.target.value)} />
                      </div>
+                     <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-foreground">Official Admission Number</label>
+                        <Input 
+                           className="h-11 bg-background font-mono font-bold border-primary/30" 
+                           placeholder="e.g. RONGO/PG/IHRS/26/001" 
+                           value={admissionNumber}
+                           onChange={e => setAdmissionNumber(e.target.value)}
+                        />
+                     </div>
                   </div>
                </div>
             </form>
@@ -204,13 +215,13 @@ export function StudentRegistry() {
                </div>
                <div className="p-6 flex flex-col items-center justify-center text-center space-y-4">
                   <div className="w-full rounded-xl bg-background border border-border p-4 shadow-inner">
-                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-2">Projected Admission No.</p>
+                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-2">Assigned Admission No.</p>
                      <p className="text-xl font-mono text-primary font-black tracking-widest uppercase truncate max-w-full">
-                        RONGO/PG/{departments.find(d => d.id === selectedDept)?.name || "???"}/{intakeYear.slice(-2)}/<span className="text-foreground animate-pulse">***</span>
+                        {admissionNumber || "SPECIFY-ID"}
                      </p>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                     Generated based on Department code and intake year pattern.
+                     Manually defined by System Admin to match institutional records.
                   </p>
                </div>
             </div>

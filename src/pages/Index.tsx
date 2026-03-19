@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -26,20 +26,19 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        // Sign Up Flow
-        if (!firstName || !lastName || !email || !password) {
+        // Sign Up Flow (Always requires email for new auth nodes)
+        if (!firstName || !lastName || !loginIdentifier || !password) {
           throw new Error("All fields are required for registration.");
         }
 
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: loginIdentifier,
           password,
         });
 
         if (error) throw error;
         
         if (data.user) {
-          // Attempt to map mapping to public.users table directly for demo purposes
           // @ts-ignore
           const { error: dbError } = await supabase.from('users').insert({
              id: data.user.id,
@@ -49,20 +48,47 @@ export default function Login() {
              role: 'STUDENT'
           });
 
-          if (dbError) {
-             console.error("User creation error:", dbError);
-             toast.warning("Auth registered, but missing DB binding.");
-          }
+          if (dbError) throw dbError;
 
           toast.success("Account created successfully!", {
             description: "You have been registered. You can now login.",
           });
-          setIsSignUp(false); // Switch to login view
+          setIsSignUp(false); 
         }
       } else {
-        // Log In Flow
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+        // Log In Flow - Supports Email OR admission_no OR staff_id
+        let targetEmail = loginIdentifier;
+
+        // Perform lookup if it's not looking like an email
+        if (!loginIdentifier.includes('@')) {
+           // 1. Try Staff Registry
+           // @ts-ignore
+           const { data: staffData } = await supabase.from('users').select('email').eq('staff_id', loginIdentifier).maybeSingle();
+           
+           // @ts-ignore
+           if (staffData?.email) {
+              // @ts-ignore
+              targetEmail = staffData.email;
+           } else {
+              // 2. Try Student Registry
+              // @ts-ignore
+              const { data: studentData } = await supabase.from('students').select('user_id').eq('registration_number', loginIdentifier).maybeSingle();
+              
+              // @ts-ignore
+              if (studentData?.user_id) {
+                 // @ts-ignore
+                 const { data: userData } = await supabase.from('users').select('email').eq('id', studentData.user_id).maybeSingle();
+                 // @ts-ignore
+                 if (userData?.email) {
+                    // @ts-ignore
+                    targetEmail = userData.email;
+                 }
+              }
+           }
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+          email: targetEmail,
           password,
         });
 
@@ -72,7 +98,6 @@ export default function Login() {
           description: "Welcome back to Rongo Progress Flow.",
         });
         
-        // Wait briefly for RoleContext to resolve the fetch user state
         setTimeout(() => {
           navigate("/");
         }, 500);
@@ -198,15 +223,15 @@ export default function Login() {
                 )}
 
                 <div className="space-y-2 relative group">
-                  <Label htmlFor="email" className="text-white/80 font-medium ml-1">Email address</Label>
+                  <Label htmlFor="loginIdentifier" className="text-white/80 font-medium ml-1">Admission No / Staff ID / Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" size={18} />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors" size={18} />
                     <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="name@rongo.ac.ke" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="loginIdentifier" 
+                      type="text" 
+                      placeholder="e.g. RU/PG/1001 or Student ID" 
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/20 pl-10 h-12 rounded-xl focus:bg-white/10 transition-all focus:ring-primary/40"
                       required
                     />
