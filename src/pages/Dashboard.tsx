@@ -22,6 +22,7 @@ import { MyStudents } from "@/components/supervisor/MyStudents";
 import { SeminarReadiness } from "@/components/supervisor/SeminarReadiness";
 import { CorrectionsVerification } from "@/components/supervisor/CorrectionsVerification";
 import { ProgressReportsReview } from "@/components/supervisor/ProgressReportsReview";
+import { ThesisExams } from "@/components/supervisor/ThesisExams";
 import { SeminarBookingRequests } from "@/components/admin/SeminarBookingRequests";
 import { SeminarSessions } from "@/components/admin/SeminarSessions";
 import { StudentProgressControl } from "@/components/admin/StudentProgressControl";
@@ -61,6 +62,7 @@ const SUPERVISOR_TITLES: Record<string, string> = {
   "/readiness": "Seminar Readiness",
   "/verification": "Corrections Verification",
   "/reports-review": "Progress Reports Review",
+  "/thesis-exams": "Thesis & Examination Board",
 };
 
 const ADMIN_TITLES: Record<string, string> = {
@@ -167,6 +169,7 @@ export default function Index() {
          case "/readiness": return <SeminarReadiness />;
          case "/verification": return <CorrectionsVerification />;
          case "/reports-review": return <ProgressReportsReview />;
+         case "/thesis-exams": return <ThesisExams />;
          
          // Shared Components
          case "/profile": return <AcademicProfile />;

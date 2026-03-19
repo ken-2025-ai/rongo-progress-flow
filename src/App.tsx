@@ -57,6 +57,7 @@ const AppRoutes = () => {
       <Route path="/readiness" element={<Dashboard />} />
       <Route path="/verification" element={<Dashboard />} />
       <Route path="/reports-review" element={<Dashboard />} />
+      <Route path="/thesis-exams" element={<Dashboard />} />
 
       {/* Admin specific routes */}
       <Route path="/booking-requests" element={<Dashboard />} />

@@ -15,63 +15,72 @@ import { useRole } from "@/contexts/RoleContext";
 
 export function ProgressReportsSubmission() {
   const { user } = useRole();
+  const [studentId, setStudentId] = useState<string | null>(null);
   const [quarter, setQuarter] = useState<string>("");
   const [year, setYear] = useState<string>("2026");
   const [synopsis, setSynopsis] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [pastReports, setPastReports] = useState([
-    { quarter: "Q1 2026", status: "Approved", date: "Jan 15, 2026", comments: "Good progress on literature review." },
-    { quarter: "Q4 2025", status: "Approved", date: "Oct 12, 2025", comments: "Methodology approved. Proceed to data collection." },
-  ]);
+  const [pastReports, setPastReports] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStudentInfo();
+    }
+  }, [user]);
+
+  const fetchStudentInfo = async () => {
+    // 1. Get student ID
+    // @ts-ignore
+    const { data: studentData } = await supabase.from('students').select('id').eq('user_id', user.id).maybeSingle();
+    
+    if (studentData) {
+      setStudentId(studentData.id);
+      fetchReports(studentData.id);
+    }
+  };
+
+  const fetchReports = async (sId: string) => {
+    // @ts-ignore
+    const { data, error } = await supabase
+      .from('progress_reports')
+      .select('*')
+      .eq('student_id', sId)
+      .order('created_at', { ascending: false });
+    
+    if (data) setPastReports(data);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quarter || !synopsis) {
-       toast.error("Missing Data", { description: "Quarter and synopsis are strictly required." });
+    if (!quarter || !synopsis || !studentId) {
+       toast.error("Missing Data", { description: "Quarter, synopsis, and student mapping are required." });
        return;
     }
 
     setIsSubmitting(true);
     
-    // Attempt Supabase backend push
     try {
-       // Note: In MVP, if user isn't physically logged into Supabase Auth, RLS will block this.
-       // We attempt the backend call, but gracefully fallback to UI-state update for Demo resilience.
-       // @ts-ignore - Supabase type regeneration not synced yet
+       // @ts-ignore
        const { error } = await supabase.from('progress_reports').insert({
+          student_id: studentId,
           quarter,
           year,
           synopsis,
-          file_url: "dummy_url.pdf",
-          student_id: user.name === "Omondi Okech" ? "00000000-0000-0000-0000-000000000000" : undefined 
-          // Note: Needs strict UUID from students table.
+          file_url: "institutional_storage/reports/placeholder.pdf",
+          status: 'PENDING'
        });
 
-       if (error && error.code !== "42501") { 
-          // 42501 = RLS violation, we ignore for presentation mock fallback
-          throw error;
-       }
+       if (error) throw error;
 
-       // Success (or fallback simulation for MVP)
-       setTimeout(() => {
-          setPastReports(prev => [{
-            quarter: `${quarter.toUpperCase()} ${year}`,
-            status: "Pending",
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            comments: "Awaiting supervisory review..."
-          }, ...prev]);
-
-          toast.success("Report Synchronized", {
-             description: "Your progress report has been submitted to your supervisor.",
-          });
-          
-          setSynopsis("");
-          setIsSubmitting(false);
-       }, 800);
-
+       toast.success("Report Synchronized", {
+          description: "Your progress report has been submitted to your supervisor.",
+       });
+       
+       setSynopsis("");
+       fetchReports(studentId);
     } catch (err: any) {
-       toast.error("Backend Error", { description: err.message });
+       toast.error("Submission Failed", { description: err.message });
+    } finally {
        setIsSubmitting(false);
     }
   };
@@ -212,11 +221,11 @@ export function ProgressReportsSubmission() {
                      </p>
                      
                      <div className={`p-3 rounded text-[11px] italic leading-relaxed border ${
-                        report.status === 'Pending'
+                        report.status === 'PENDING'
                            ? 'bg-primary/10 text-primary/80 border-primary/20'
                            : 'bg-muted/40 text-muted-foreground border-border/50'
                      }`}>
-                        "{report.comments}"
+                        "{report.synopsis || "No status comments yet."}"
                      </div>
                      
                      <div className="mt-4 flex items-center text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest gap-1">

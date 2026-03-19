@@ -1,11 +1,62 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Hash, BookOpen, GraduationCap, Building2 } from "lucide-react";
+import { User, Mail, Hash, BookOpen, GraduationCap, Building2, Loader2 } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
 import { Badge } from "@/components/ui/badge";
 import { containerVariants, itemVariants } from "@/lib/animations";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AcademicProfile() {
   const { user } = useRole();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchFullProfile();
+    }
+  }, [user]);
+
+  const fetchFullProfile = async () => {
+    try {
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          supervisor:supervisor_id(first_name, last_name),
+          programmes(
+            name,
+            code,
+            departments(
+              name,
+              schools(name)
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) setProfile(data);
+    } catch (err) {
+      console.error("Profile error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+     return (
+        <div className="h-64 flex items-center justify-center">
+           <Loader2 className="animate-spin text-primary" size={40} />
+        </div>
+     );
+  }
+
+  const prog = profile?.programmes;
+  const dept = prog?.departments;
+  const school = dept?.schools;
+  const supervisor = profile?.supervisor ? `Dr. ${profile.supervisor.first_name} ${profile.supervisor.last_name}` : "Not Assigned";
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-4xl mx-auto space-y-6">
@@ -27,8 +78,8 @@ export function AcademicProfile() {
                  <Mail size={14} />
                  <span>{user.email}</span>
               </div>
-              <Badge className="mt-4 bg-status-success/15 text-status-success hover:bg-status-success/20 border-transparent font-bold">
-                 Active Post-Graduate Student
+              <Badge className="mt-4 bg-status-success/15 text-status-success hover:bg-status-success/20 border-transparent font-bold capitalize">
+                 Active {user.role} workspace
               </Badge>
            </div>
            
@@ -52,11 +103,13 @@ export function AcademicProfile() {
             <div className="space-y-6">
                <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase">Faculty / School</label>
-                  <p className="font-bold text-foreground mt-1">School of Information Sciences</p>
+                  <p className="font-bold text-foreground mt-1">{school?.name || "INFOCOM"}</p>
                </div>
                <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase">Department</label>
-                  <p className="font-bold text-foreground mt-1 text-sm bg-muted/40 p-2 rounded border border-border/50">Computing & Information Technology (CIT)</p>
+                  <p className="font-bold text-foreground mt-1 text-sm bg-muted/40 p-2 rounded border border-border/50 truncate">
+                     {dept?.name || "Assigning..."}
+                  </p>
                </div>
             </div>
          </motion.div>
@@ -70,16 +123,22 @@ export function AcademicProfile() {
             <div className="space-y-6">
                <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase flex gap-1.5 items-center"><BookOpen size={12}/> Programme Name</label>
-                  <p className="font-bold text-primary text-lg mt-1 tracking-tight">Master of Science (Health Informatics)</p>
+                  <p className="font-bold text-primary text-lg mt-1 tracking-tight leading-tight">
+                     {prog?.name || "Awaiting Placement"}
+                  </p>
                </div>
                <div className="grid grid-cols-2 gap-4">
                   <div>
                      <label className="text-xs font-bold text-muted-foreground uppercase flex gap-1.5 items-center"><Hash size={12}/> Registration No.</label>
-                     <p className="font-bold text-foreground mt-1 font-mono tracking-wider">MSC/HI/024/2026</p>
+                     <p className="font-bold text-foreground mt-1 font-mono tracking-wider truncate">
+                        {profile?.registration_number || "PENDING"}
+                     </p>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-muted-foreground uppercase">Intake Year</label>
-                     <p className="font-bold text-foreground mt-1">September 2026</p>
+                     <label className="text-xs font-bold text-muted-foreground uppercase">Stage</label>
+                     <p className="font-bold text-foreground mt-1 text-xs truncate uppercase tracking-tighter">
+                        {profile?.current_stage?.replace(/_/g, ' ') || "ENROLLED"}
+                     </p>
                   </div>
                </div>
             </div>
@@ -94,18 +153,18 @@ export function AcademicProfile() {
          <div className="bg-muted/30 p-5 rounded-xl border border-border/50">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Approved Research Title</label>
             <p className="text-xl font-bold text-foreground italic leading-relaxed">
-               "Predictive Modeling of Communicable Disease Outbreaks in Western Kenya using Deep Learning."
+               "{profile?.research_title || "SYNOPSIS PENDING APPROVAL"}"
             </p>
             
             <div className="mt-6 flex flex-col md:flex-row gap-6 border-t border-border/50 pt-4">
                <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Assigned Supervisor</label>
-                  <p className="font-bold text-sm text-primary">Dr. E. Omuya</p>
+                  <p className="font-bold text-sm text-primary">{supervisor}</p>
                </div>
                <div>
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Current Academic Stage</label>
-                  <Badge variant="outline" className="text-xs font-bold text-status-warning bg-status-warning/10 border-transparent">
-                     Departmental Seminar Passed
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Intake Metadata</label>
+                  <Badge variant="outline" className="text-xs font-bold text-status-warning bg-status-warning/10 border-transparent uppercase tracking-widest">
+                     {new Date(profile?.created_at).getFullYear() || 2026} INTAKE
                   </Badge>
                </div>
             </div>

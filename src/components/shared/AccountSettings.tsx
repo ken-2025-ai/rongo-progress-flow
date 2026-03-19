@@ -1,139 +1,157 @@
 import { motion } from "framer-motion";
-import { User, Lock, Mail, Building2, Bell, Shield, Save } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { containerVariants, itemVariants } from "@/lib/animations";
+import { User, Shield, Bell, Key, Camera, Loader2, Save, Lock, Mail } from "lucide-react";
+import { useState } from "react";
 import { useRole } from "@/contexts/RoleContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { containerVariants, itemVariants } from "@/lib/animations";
 
 export function AccountSettings() {
   const { user, currentRole } = useRole();
-
+  const [isSaving, setIsSaving] = useState(false);
+  
   const handleSave = () => {
-    toast.success("Settings Saved", {
-      description: "Your academic account profile has been successfully updated.",
-    });
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      toast.success("Settings Synchronized", {
+        description: "Your institutional profile and security preferences have been updated."
+      });
+    }, 1200);
   };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-4xl mx-auto space-y-6 pb-20">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-6xl mx-auto space-y-8 pb-12">
       
-      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm mb-8">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <User className="text-primary" />
-            Account Management Settings
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl leading-relaxed">
-            Manage your personal profile, security credentials, and email notification preferences for the Rongo University Progress Tracking System.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <motion.div variants={itemVariants} className="lg:col-span-2 space-y-8">
-            
-            {/* Personal Info */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-               <div className="p-4 border-b border-border/50 bg-muted/20">
-                  <h3 className="font-bold uppercase tracking-widest text-xs text-muted-foreground flex items-center gap-2">
-                     <Building2 size={16}/> Identity & Affiliation
-                  </h3>
-               </div>
-               
-               <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Full Name</label>
-                        <Input defaultValue={user.name} className="h-12 bg-background font-medium" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex justify-between">
-                           Institutional Email
-                           <span className="text-success lowercase tracking-normal flex items-center gap-1"><Shield size={10}/> Verified</span>
-                        </label>
-                        <Input defaultValue={user.email} disabled className="h-12 bg-muted/50 font-medium text-muted-foreground opacity-70" />
-                     </div>
-                  </div>
-                  
-                  {currentRole === 'student' && (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Registration Number</label>
-                           <Input defaultValue="MSC/HI/024/2026" disabled className="h-12 bg-muted/50 font-mono tracking-wider opacity-70" />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Contact Phone</label>
-                           <Input defaultValue="+254 712 345 678" className="h-12 bg-background font-medium" />
-                        </div>
-                     </div>
-                  )}
-               </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Navigation Sidebar */}
+        <motion.div variants={itemVariants} className="space-y-2 lg:col-span-1">
+            <div className="mb-6 px-4">
+               <h2 className="text-xl font-black text-foreground tracking-tight">Account Board</h2>
+               <p className="text-xs text-muted-foreground font-medium">Manage your identity.</p>
             </div>
+            {[
+              { label: "Public Profile", icon: User, active: true },
+              { label: "Security & Access", icon: Shield, active: false },
+              { label: "Notification Desk", icon: Bell, active: false },
+              { label: "API Credentials", icon: Key, active: false },
+            ].map((item, i) => (
+              <Button 
+                key={i} 
+                variant={item.active ? "secondary" : "ghost"} 
+                className={`w-full justify-start gap-3 h-11 font-bold ${item.active ? 'bg-primary/10 text-primary border border-primary/20' : 'text-muted-foreground'}`}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </Button>
+            ))}
+        </motion.div>
 
-            {/* Security */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
-               <div className="p-4 border-b border-border/50 bg-muted/20">
-                  <h3 className="font-bold uppercase tracking-widest text-xs text-muted-foreground flex items-center gap-2">
-                     <Lock size={16}/> Password & Security
-                  </h3>
+        {/* Content Area */}
+        <motion.div variants={itemVariants} className="lg:col-span-3 space-y-8">
+          
+          {/* Section 1: Professional Identity */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-border/50 bg-muted/20">
+               <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                  <User size={14}/> Professional Identity & Avatar
+               </h3>
+            </div>
+            
+            <div className="p-8 space-y-10">
+               <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="relative group">
+                    <div className="h-28 w-28 bg-primary/20 rounded-full flex items-center justify-center text-5xl font-black text-primary border-4 border-background shadow-2xl overflow-hidden">
+                      {user.name.charAt(0)}
+                    </div>
+                    <button className="absolute bottom-0 right-0 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:scale-110 transition-transform border-4 border-background">
+                      <Camera size={16} />
+                    </button>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <h3 className="font-bold text-xl text-foreground">Institutional Avatar</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-1">This photo will be used on your digital ID and seminar attendance sheets. JPG or PNG, max 2MB.</p>
+                    <div className="flex justify-center md:justify-start gap-3 mt-4">
+                       <Button size="sm" variant="outline" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest">Remove</Button>
+                       <Button size="sm" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground">Upload New Photo</Button>
+                    </div>
+                  </div>
                </div>
-               
-               <div className="p-6 space-y-6">
+
+               <Separator className="bg-border/50" />
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Current Password</label>
-                     <Input type="password" placeholder="••••••••" className="h-12 bg-background font-medium max-w-md" />
+                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                        <User size={12}/> Legal Display Name
+                     </label>
+                     <Input defaultValue={user.name} className="h-12 bg-background font-medium focus:ring-primary/20" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border/50 pt-4">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New Password</label>
-                        <Input type="password" placeholder="Enter new password" className="h-12 bg-background font-medium" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Confirm New Password</label>
-                        <Input type="password" placeholder="Re-type new password" className="h-12 bg-background font-medium" />
-                     </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                        <Mail size={12}/> System Email
+                     </label>
+                     <Input defaultValue={user.email} disabled className="h-12 bg-muted/40 font-medium cursor-not-allowed opacity-70" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground flex gap-1 items-start mt-2 border-l-2 border-primary pl-2 uppercase font-medium">
-                     <Shield size={12} className="shrink-0 mt-0.5" /> Password must be at least 8 characters long and contain a number.
-                  </p>
+                  <div className="space-y-2 md:col-span-2">
+                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                        <Lock size={12}/> Research Focus Synopsis
+                     </label>
+                     <Input placeholder="E.g. Optimization of machine learning algorithms for agricultural yield prediction..." className="h-12 bg-background font-medium transition-all" />
+                  </div>
                </div>
             </div>
-            
-            <Button onClick={handleSave} className="w-full md:w-auto h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/20 uppercase tracking-widest text-[11px] transition-transform active:scale-[0.98]">
-               <Save size={16} className="mr-2" /> Save Account Settings
-            </Button>
-         </motion.div>
+          </div>
 
-         {/* Side Nav/Toggles */}
-         <motion.div variants={itemVariants} className="space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 border-b border-border pb-2 text-muted-foreground">
-               <Bell size={16}/> Notification Preferences
-            </h3>
-            
-            <div className="bg-card p-5 rounded-xl border border-border shadow-sm space-y-5">
-               <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                     <label className="text-sm font-bold text-foreground block cursor-pointer">Email Notifications</label>
-                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Crucial Updates</p>
-                  </div>
-                  <div className="h-6 w-11 bg-primary rounded-full relative cursor-pointer shadow-inner">
-                     <div className="h-4 w-4 bg-white rounded-full absolute right-1 top-1 shadow-sm" />
-                  </div>
-               </div>
-               
-               <div className="flex items-center justify-between pt-4 border-t border-border/50 opacity-60">
-                  <div className="space-y-0.5">
-                     <label className="text-sm font-bold text-foreground block cursor-pointer">SMS Alerts</label>
-                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Seminar Reminders</p>
-                  </div>
-                  <div className="h-6 w-11 bg-muted border border-border rounded-full relative cursor-not-allowed">
-                     <div className="h-4 w-4 bg-muted-foreground rounded-full absolute left-1 top-[3px]" />
-                  </div>
-               </div>
-               <p className="text-[9px] uppercase font-bold tracking-widest text-status-warning text-center mt-4">SMS Gateway currently under maintenance.</p>
+          {/* Section 2: Global Preferences */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-border/50 bg-muted/20">
+               <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                  <Bell size={14}/> Communication & Alerts
+               </h3>
             </div>
-         </motion.div>
+            
+            <div className="p-8 space-y-6">
+               <div className="grid gap-4">
+                  {[
+                    { label: "Review Feedback Alerts", desc: "Push & Email when a supervisor or coordinator reviews your work.", default: true },
+                    { label: "Deadline Reminders", desc: "Institutional reminders for quarterly progress report windows.", default: true },
+                    { label: "System Service Status", desc: "Alerts regarding planned maintenance and portal upgrades.", default: false },
+                  ].map((pref, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/5 hover:bg-muted/10 transition-colors">
+                       <div className="space-y-0.5">
+                          <p className="text-sm font-bold text-foreground">{pref.label}</p>
+                          <p className="text-[11px] text-muted-foreground font-medium">{pref.desc}</p>
+                       </div>
+                       <Switch defaultChecked={pref.default} />
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+
+          {/* Action Dock */}
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/20 p-6 rounded-2xl border border-border/50">
+             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Last synchronized: Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+             </p>
+             <div className="flex gap-4 w-full sm:w-auto">
+                <Button variant="ghost" className="font-bold text-muted-foreground uppercase tracking-widest text-[10px] h-12 px-6">Discard</Button>
+                <Button 
+                   onClick={handleSave} 
+                   disabled={isSaving}
+                   className="flex-1 sm:flex-initial bg-primary text-primary-foreground font-bold px-10 h-12 shadow-xl shadow-primary/20 gap-3 uppercase tracking-widest text-[11px]"
+                >
+                   {isSaving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>}
+                   {isSaving ? "Synchronizing..." : "Save Settings"}
+                </Button>
+             </div>
+          </motion.div>
+
+        </motion.div>
       </div>
 
     </motion.div>

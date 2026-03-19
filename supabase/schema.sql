@@ -267,24 +267,55 @@ ALTER TABLE public.schools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progress_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seminar_bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thesis_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.corrections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
 
--- GLOBAL SUPER ADMIN BYPASS
--- This allows the King of Architecture to skip all role checks
-CREATE POLICY "Super Admin Bypass Users" ON public.users FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN')
-);
-CREATE POLICY "Super Admin Bypass Schools" ON public.schools FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN')
-);
-CREATE POLICY "Super Admin Bypass Departments" ON public.departments FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN')
-);
-CREATE POLICY "Super Admin Bypass Students" ON public.students FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN')
-);
+-- 1. GLOBAL SUPER ADMIN BYPASS
+CREATE POLICY "Super Admin Bypass Users" ON public.users FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Schools" ON public.schools FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Departments" ON public.departments FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Students" ON public.students FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Reports" ON public.progress_reports FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Bookings" ON public.seminar_bookings FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+CREATE POLICY "Super Admin Bypass Thesis" ON public.thesis_submissions FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
 
--- Regular User Policies (Select few)
+-- 2. USER/STUDENT POLICIES
 CREATE POLICY "Users view self" ON public.users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Students view own profile" ON public.students FOR SELECT USING (auth.uid() = user_id);
+
+-- 3. PROGRESS REPORTS POLICIES
+CREATE POLICY "Students insert own reports" ON public.progress_reports FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
+);
+CREATE POLICY "Students view own reports" ON public.progress_reports FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
+);
+CREATE POLICY "Supervisors view mentee reports" ON public.progress_reports FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
+);
+CREATE POLICY "Supervisors update mentee reports" ON public.progress_reports FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
+);
+
+-- 4. SEMINAR BOOKINGS POLICIES
+CREATE POLICY "Students manage own bookings" ON public.seminar_bookings FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
+);
+CREATE POLICY "Coordinators handle bookings" ON public.seminar_bookings FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR'))
+);
+
+-- 5. THESIS SUBMISSIONS POLICIES
+CREATE POLICY "Students upload thesis" ON public.thesis_submissions FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
+);
+CREATE POLICY "Academic staff view thesis" ON public.thesis_submissions FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('SUPERVISOR', 'DEPT_COORDINATOR', 'PG_DEAN', 'EXAMINER'))
+);
+
+-- 6. PUBLIC ENTITIES
 CREATE POLICY "Public view schools" ON public.schools FOR SELECT USING (true);
 CREATE POLICY "Public view depts" ON public.departments FOR SELECT USING (true);
-CREATE POLICY "Students view own profile" ON public.students FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Public view programmes" ON public.programmes FOR SELECT USING (true);
