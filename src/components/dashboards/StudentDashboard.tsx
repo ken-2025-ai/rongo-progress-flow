@@ -1,145 +1,205 @@
-import { Clock, ArrowRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Calendar, FileText, Loader2 } from "lucide-react";
 import { PipelineRail } from "@/components/PipelineRail";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-
-const UPCOMING_PRESENTATIONS = [
-  { title: "Progress Seminar II", date: "March 28, 2026", venue: "Room 204, PG Block", status: "confirmed" },
-  { title: "Departmental Review", date: "April 15, 2026", venue: "Senate Hall", status: "pending" },
-];
-
-const CORRECTIONS = [
-  { item: "Chapter 3 methodology restructuring", urgency: "high", done: false },
-  { item: "Update literature review citations (2024–2026)", urgency: "medium", done: true },
-  { item: "Revise abstract to 300 words", urgency: "low", done: false },
-  { item: "Fix Table 4.2 data inconsistency", urgency: "high", done: false },
-];
-
-import { containerVariants as container, itemVariants as item } from "@/lib/animations";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/contexts/RoleContext";
+import { containerVariants, itemVariants } from "@/lib/animations";
+import { Link } from "react-router-dom";
 
 export function StudentDashboard() {
+  const { user } = useRole();
+  const [loading, setLoading] = useState(true);
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [presentations, setPresentations] = useState<any[]>([]);
+  const [corrections, setCorrections] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.id) fetchStudentData();
+  }, [user]);
+
+  const fetchStudentData = async () => {
+    setLoading(true);
+    try {
+      // 1. Fetch Student Profile & Stage
+      // @ts-ignore
+      const { data: sData } = await supabase.from('students').select('*').eq('user_id', user.id).single();
+      if (sData) {
+        setStudentInfo(sData);
+
+        // 2. Fetch Seminar Bookings
+        // @ts-ignore
+        const { data: pData } = await supabase
+          .from('seminar_bookings')
+          .select('*')
+          .eq('student_id', sData.id)
+          .order('requested_date', { ascending: true })
+          .limit(3);
+        setPresentations(pData || []);
+
+        // 3. Fetch Corrections
+        // @ts-ignore
+        const { data: cData } = await supabase
+          .from('corrections')
+          .select('*')
+          .eq('student_id', sData.id)
+          .order('created_at', { ascending: false });
+        setCorrections(cData || []);
+      }
+    } catch (err) {
+      console.error("Dashboard Fetch Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stageToLabel = (stage: string) => {
+    return stage?.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ') || "Pre-Registration";
+  };
+
+  const getStageNumeric = (stage: string) => {
+    const sequence = ['DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'];
+    const idx = sequence.indexOf(stage);
+    return idx === -1 ? 0 : idx + 1;
+  };
+
+  if (loading) return (
+     <div className="h-96 flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+     </div>
+  );
+
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
-      {/* Pipeline */}
-      <motion.div variants={item}>
-        <PipelineRail currentStage={3} />
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 pb-20">
+      {/* Real-time Pipeline */}
+      <motion.div variants={itemVariants}>
+        <PipelineRail currentStage={getStageNumeric(studentInfo?.current_stage)} />
       </motion.div>
 
-      {/* Status Row */}
-      <div className="grid grid-cols-3 gap-4">
-        <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4 flex items-start gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-            <Clock className="h-4 w-4 text-primary" />
+      {/* KPI Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <motion.div variants={itemVariants} className="card-shadow rounded-2xl bg-card p-5 border border-border shadow-sm flex items-start gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 shadow-inner">
+            <Clock className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="label-uppercase text-muted-foreground">Current Stage</p>
-            <p className="text-lg font-semibold text-foreground">First Draft</p>
-            <p className="text-xs text-muted-foreground tabular-nums mt-0.5">18 days in stage</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Current Milestone</p>
+            <p className="text-lg font-black text-foreground mt-0.5">{stageToLabel(studentInfo?.current_stage)}</p>
+            <p className="text-[10px] font-bold text-primary/80 uppercase mt-1">Institutional Track Status</p>
           </div>
         </motion.div>
 
-        <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4 flex items-start gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-status-warning/10">
-            <AlertTriangle className="h-4 w-4 text-status-warning" />
+        <motion.div variants={itemVariants} className="card-shadow rounded-2xl bg-card p-5 border border-border shadow-sm flex items-start gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-status-warning/10 shadow-inner">
+            <AlertTriangle className="h-5 w-5 text-status-warning" />
           </div>
           <div>
-            <p className="label-uppercase text-muted-foreground">Status</p>
-            <p className="text-lg font-semibold text-status-warning">Warning</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Submit draft within 12 days</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Attention Required</p>
+            <p className="text-lg font-black text-status-warning mt-0.5">
+               {corrections.filter(c => c.status === 'PENDING').length} Pending Tasks
+            </p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Review supervisor feedback</p>
           </div>
         </motion.div>
 
-        <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4 flex items-start gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-            <ArrowRight className="h-4 w-4 text-primary" />
+        <motion.div variants={itemVariants} className="card-shadow rounded-2xl bg-card p-5 border border-border shadow-sm flex items-start gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-success/10 shadow-inner">
+            <CheckCircle2 className="h-5 w-5 text-success" />
           </div>
           <div>
-            <p className="label-uppercase text-muted-foreground">Next Action</p>
-            <p className="text-sm font-semibold text-foreground">Submit Chapter 3 & 4 to Supervisor</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Due: March 30, 2026</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Validation Status</p>
+            <p className="text-lg font-black text-foreground mt-0.5 font-mono">
+               {studentInfo?.registration_number || "IDENT-PENDING"}
+            </p>
+            <Badge variant="secondary" className="mt-1 text-[8px] font-black uppercase bg-success/10 text-success border-success/20">Verified Identity</Badge>
           </div>
         </motion.div>
       </div>
 
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Upcoming Presentations */}
-        <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-container-header mb-3">Upcoming Presentations</h3>
-          <div className="space-y-2">
-            {UPCOMING_PRESENTATIONS.map((pres, i) => (
-              <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{pres.title}</p>
-                  <p className="text-xs text-muted-foreground">{pres.date} · {pres.venue}</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  pres.status === "confirmed"
-                    ? "bg-primary/10 text-primary"
-                    : "bg-status-warning/10 text-status-warning"
-                }`}>
-                  {pres.status}
-                </span>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Real Dynamic Presentations */}
+        <motion.div variants={itemVariants} className="card-shadow rounded-2xl bg-card border border-border shadow-sm overflow-hidden border-b-4 border-b-primary">
+          <div className="p-4 bg-muted/20 border-b border-border/50 flex justify-between items-center">
+             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <Calendar size={14} /> Scheduled Academic Events
+             </h3>
+             <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-widest">{presentations.length} Sessions</Badge>
+          </div>
+          <div className="p-5 space-y-3">
+            {presentations.length === 0 ? (
+               <div className="text-center py-10 text-muted-foreground italic text-sm">No scheduled presentations found.</div>
+            ) : (
+               presentations.map((pres, i) => (
+               <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/5 border border-border/50 hover:bg-muted/10 transition-colors">
+                 <div>
+                   <p className="text-sm font-bold text-foreground">{pres.seminar_level.replace('_', ' ')}</p>
+                   <p className="text-[10px] font-medium text-muted-foreground">{new Date(pres.requested_date).toLocaleDateString()} · Institutionally Vetted Venue</p>
+                 </div>
+                 <Badge className={`text-[9px] font-black uppercase tracking-tighter ${
+                   pres.status === "APPROVED" ? "bg-success/10 text-success border-success/20" : "bg-status-warning/10 text-status-warning border-status-warning/20"
+                 }`}>
+                   {pres.status}
+                 </Badge>
+               </div>
+               ))
+            )}
           </div>
         </motion.div>
 
-        {/* Corrections Checklist */}
-        <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-          <h3 className="label-uppercase text-container-header mb-3">
-            Corrections Checklist
-            <span className="ml-2 text-foreground tabular-nums">
-              {CORRECTIONS.filter(c => c.done).length}/{CORRECTIONS.length}
-            </span>
-          </h3>
-          <div className="space-y-1.5">
-            {CORRECTIONS.map((c, i) => (
-              <label key={i} className="flex items-start gap-2.5 rounded-md bg-background px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <input type="checkbox" defaultChecked={c.done} className="mt-0.5 accent-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${c.done ? "line-through text-muted-foreground" : "text-foreground"}`}>{c.item}</p>
-                </div>
-                <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  c.urgency === "high" ? "bg-destructive/10 text-destructive" :
-                  c.urgency === "medium" ? "bg-status-warning/10 text-status-warning" :
-                  "bg-muted text-muted-foreground"
-                }`}>
-                  {c.urgency}
-                </span>
-              </label>
-            ))}
+        {/* Real Corrections Checklist */}
+        <motion.div variants={itemVariants} className="card-shadow rounded-2xl bg-card border border-border shadow-sm overflow-hidden border-b-4 border-b-status-warning">
+          <div className="p-4 bg-muted/20 border-b border-border/50 flex justify-between items-center">
+             <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <FileText size={14} /> Supervisory Corrections Checklist
+             </h3>
+             <span className="text-[10px] font-black tabular-nums transition-all bg-status-warning/10 text-status-warning px-2 py-0.5 rounded">
+               {corrections.filter(c => c.status === 'APPROVED').length}/{corrections.length} RESOLVED
+             </span>
+          </div>
+          <div className="p-5 space-y-2.5 max-h-[300px] overflow-y-auto custom-scrollbar">
+            {corrections.length === 0 ? (
+               <div className="text-center py-10 text-muted-foreground italic text-sm">Clean architectural record. No pending corrections.</div>
+            ) : (
+               corrections.map((c, i) => (
+               <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-background border border-border/60">
+                 <div className={`mt-1 p-1 rounded-full ${c.status === 'APPROVED' ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
+                    <CheckCircle2 size={14} />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className={`text-xs font-medium leading-relaxed ${c.status === 'APPROVED' ? "line-through text-muted-foreground" : "text-foreground"}`}>{c.description}</p>
+                 </div>
+                 <Badge variant="outline" className="text-[8px] font-black uppercase opacity-60 shrink-0">{c.urgency || "STANDARD"}</Badge>
+               </div>
+               ))
+            )}
           </div>
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
-      <motion.div variants={item} className="flex gap-3">
-        <Button className="bg-success text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">
-          <CalendarIcon className="h-4 w-4 mr-2" />
-          Request Presentation
-        </Button>
-        <Button variant="outline" className="border-border text-foreground hover:bg-muted transition-all active:scale-[0.98]">
-          <FileIcon className="h-4 w-4 mr-2" />
-          Submit Quarterly Report
-        </Button>
+      {/* Synchronized Command Dock */}
+      <motion.div variants={itemVariants} className="bg-muted/30 p-6 rounded-2xl border border-border/50 flex flex-wrap gap-4 items-center justify-between">
+         <div className="flex flex-col gap-1">
+            <h4 className="text-sm font-bold text-foreground">Next Procedural Step</h4>
+            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Awaiting Departmental Seminar Review</p>
+         </div>
+         <div className="flex gap-4">
+            <Link to="/booking">
+               <Button className="bg-primary/90 hover:bg-primary text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-primary/20 gap-2 uppercase text-[10px] tracking-widest">
+                  <Calendar className="h-4 w-4" /> Request Seminar Execution
+               </Button>
+            </Link>
+            <Link to="/reports">
+               <Button variant="outline" className="bg-background border-border/80 text-foreground font-bold h-12 px-8 rounded-xl gap-2 uppercase text-[10px] tracking-widest hover:bg-muted transition-all">
+                  <FileText className="h-4 w-4" /> Provision Quarterly Status
+               </Button>
+            </Link>
+         </div>
       </motion.div>
     </motion.div>
   );
 }
 
-function CalendarIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
-    </svg>
-  );
-}
-
-function FileIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
-    </svg>
-  );
+// Re-using Shadcn Badge instead of custom spans for premium feel
+import { Badge } from "@/components/ui/badge";
 }
