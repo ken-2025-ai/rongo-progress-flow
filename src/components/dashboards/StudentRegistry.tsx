@@ -163,35 +163,7 @@ export function StudentRegistry() {
             <div className="space-y-4 pt-2">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2">Academic Placement</h4>
 
-              {/* --- STUDY LEVEL SELECTOR --- */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground">Study Level</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {STUDY_LEVELS.map(level => (
-                    <button
-                      key={level.value}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLevel(level.value);
-                        setSelectedProg(""); // reset programme on level change
-                      }}
-                      className={`flex items-center gap-3 h-14 rounded-xl border px-4 text-left transition-all font-bold text-sm ${
-                        selectedLevel === level.value
-                          ? "bg-primary/10 border-primary text-primary shadow-sm"
-                          : "bg-background border-input text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      <span className="text-2xl">{level.icon}</span>
-                      <div>
-                        <p className="text-[11px] font-black leading-tight">{level.value.toUpperCase()}</p>
-                        <p className="text-[10px] font-medium opacity-70 leading-tight">{level.value === 'phd' ? 'Doctoral Programme' : "Master's Programme"}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* School & Department */}
+              {/* School & Department — retained at top */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground">School</label>
@@ -226,6 +198,34 @@ export function StudentRegistry() {
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* --- STUDY LEVEL SELECTOR --- */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground">Study Level</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {STUDY_LEVELS.map(level => (
+                    <button
+                      key={level.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedLevel(level.value);
+                        setSelectedProg("");
+                      }}
+                      className={`flex items-center gap-3 h-14 rounded-xl border px-4 text-left transition-all font-bold text-sm ${
+                        selectedLevel === level.value
+                          ? "bg-primary/10 border-primary text-primary shadow-sm"
+                          : "bg-background border-input text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="text-2xl">{level.icon}</span>
+                      <div>
+                        <p className="text-[11px] font-black leading-tight">{level.value.toUpperCase()}</p>
+                        <p className="text-[10px] font-medium opacity-70 leading-tight">{level.value === 'phd' ? 'Doctoral Programme' : "Master's Programme"}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
