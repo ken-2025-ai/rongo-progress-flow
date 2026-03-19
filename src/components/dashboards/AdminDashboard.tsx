@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, AlertTriangle, CalendarDays, FileBarChart, Clock } from "lucide-react";
+import { Users, AlertTriangle, CalendarDays, FileBarChart, Clock, LayoutDashboard, Building2 } from "lucide-react";
+import { InstitutionalSetup } from "./InstitutionalSetup";
+import { Button } from "@/components/ui/button";
 
 const STUDENTS_DATA = [
   { name: "Omondi Okech", reg: "PG/CS/001/2024", stage: "First Draft", days: 18, status: "warning", supervisor: "Dr. Amina Wanjiku" },
@@ -24,98 +27,128 @@ const STATUS_MAP: Record<string, { label: string; classes: string }> = {
 };
 
 export function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<'students' | 'setup'>('students');
+
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: "Total Students", value: "47", icon: Users, color: "bg-primary/10 text-primary" },
-          { label: "Students Overdue", value: "6", icon: AlertTriangle, color: "bg-destructive/10 text-destructive" },
-          { label: "Pending Bookings", value: "8", icon: CalendarDays, color: "bg-status-warning/10 text-status-warning" },
-          { label: "Pending Reports", value: "12", icon: FileBarChart, color: "bg-secondary/20 text-accent-foreground" },
-        ].map((kpi, i) => (
-          <motion.div key={i} variants={item} className="card-shadow rounded-lg bg-card p-4 flex items-start gap-3">
-            <div className={`flex h-9 w-9 items-center justify-center rounded-md ${kpi.color}`}>
-              <kpi.icon className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="label-uppercase text-muted-foreground">{kpi.label}</p>
-              <p className="text-2xl font-semibold text-foreground tabular-nums">{kpi.value}</p>
-            </div>
-          </motion.div>
-        ))}
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto pb-10">
+      
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 p-1 bg-card/40 backdrop-blur-sm rounded-xl border border-border w-fit shadow-sm">
+        <Button 
+          variant={activeTab === 'students' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('students')}
+          className={`rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'students' ? 'bg-primary text-white shadow-md' : 'text-muted-foreground'}`}
+        >
+          <LayoutDashboard size={14} className="mr-2" /> Students Overview
+        </Button>
+        <Button 
+          variant={activeTab === 'setup' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('setup')}
+          className={`rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'setup' ? 'bg-secondary text-white shadow-md' : 'text-muted-foreground'}`}
+        >
+          <Building2 size={14} className="mr-2" /> Institutional Setup
+        </Button>
       </div>
 
-      {/* Students Table */}
-      <motion.div variants={item} className="card-shadow rounded-lg bg-card">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="label-uppercase text-container-header">All Students</h3>
-          <div className="flex gap-2">
-            <select className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground">
-              <option>All Stages</option>
-              <option>Proposal</option>
-              <option>First Draft</option>
-              <option>Final Submission</option>
-            </select>
-            <select className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground">
-              <option>All Status</option>
-              <option>On Track</option>
-              <option>Warning</option>
-              <option>Overdue</option>
-            </select>
+      {activeTab === 'students' ? (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: "Total Students", value: "47", icon: Users, color: "bg-primary/10 text-primary" },
+              { label: "Students Overdue", value: "6", icon: AlertTriangle, color: "bg-destructive/10 text-destructive" },
+              { label: "Pending Bookings", value: "8", icon: CalendarDays, color: "bg-status-warning/10 text-status-warning" },
+              { label: "Pending Reports", value: "12", icon: FileBarChart, color: "bg-secondary/20 text-accent-foreground" },
+            ].map((kpi, i) => (
+              <motion.div key={i} variants={item} className="card-shadow rounded-2xl bg-card p-5 border border-border shadow-sm flex items-start gap-4 hover:border-border/80 transition-all">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.color} shadow-inner`}>
+                  <kpi.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
+                  <p className="text-2xl font-black text-foreground mt-1 tabular-nums">{kpi.value}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Student</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reg No</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supervisor</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stage</th>
-              <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Days</th>
-              <th className="px-4 py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {STUDENTS_DATA.map((s, i) => {
-              const st = STATUS_MAP[s.status];
-              return (
-                <tr key={i} className="border-b border-border last:border-0 transition-colors hover:bg-muted/30 cursor-pointer">
-                  <td className="px-4 py-2.5 text-sm font-medium text-foreground">{s.name}</td>
-                  <td className="px-4 py-2.5 text-sm text-muted-foreground tabular-nums">{s.reg}</td>
-                  <td className="px-4 py-2.5 text-sm text-muted-foreground">{s.supervisor}</td>
-                  <td className="px-4 py-2.5 text-sm text-foreground">{s.stage}</td>
-                  <td className="px-4 py-2.5 text-sm text-foreground text-right tabular-nums">{s.days}</td>
-                  <td className="px-4 py-2.5 text-center">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${st.classes}`}>
-                      {st.label}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </motion.div>
 
-      {/* Booking Queue */}
-      <motion.div variants={item} className="card-shadow rounded-lg bg-card p-4">
-        <h3 className="label-uppercase text-container-header mb-3">Booking Confirmation Queue</h3>
-        <div className="space-y-2">
-          {BOOKING_QUEUE.map((b, i) => (
-            <div key={i} className="flex items-center justify-between rounded-md bg-background px-3 py-2.5">
-              <div>
-                <p className="text-sm font-medium text-foreground">{b.student} — {b.type}</p>
-                <p className="text-xs text-muted-foreground">Requested {b.requested} · Preferred {b.preferred}</p>
-              </div>
-              <div className="flex gap-2">
-                <button className="rounded-md bg-success px-3 py-1 text-xs font-semibold text-success-foreground hover:bg-success/90 transition-all active:scale-[0.98]">Approve</button>
-                <button className="rounded-md border border-border px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-all active:scale-[0.98]">Reschedule</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             {/* Students Table */}
+             <motion.div variants={item} className="lg:col-span-2 card-shadow rounded-2xl bg-card border border-border shadow-sm overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/10">
+                   <h3 className="font-bold text-foreground text-sm uppercase tracking-widest flex items-center gap-2">
+                      <Users size={16} className="text-primary"/> Scholastic Records
+                   </h3>
+                   <div className="flex gap-2">
+                      <select className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40">
+                         <option>All Stages</option>
+                         <option>Proposal</option>
+                         <option>First Draft</option>
+                         <option>Final Submission</option>
+                      </select>
+                   </div>
+                </div>
+                <div className="overflow-x-auto">
+                   <table className="w-full text-sm">
+                      <thead>
+                         <tr className="bg-muted/30 border-b border-border/40 text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                            <th className="px-5 py-3 text-left">Student</th>
+                            <th className="px-5 py-3 text-left">Reg No</th>
+                            <th className="px-5 py-3 text-left">Supervisor</th>
+                            <th className="px-5 py-3 text-right">Stage</th>
+                            <th className="px-5 py-3 text-center">Status</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/20">
+                         {STUDENTS_DATA.map((s, i) => {
+                            const st = STATUS_MAP[s.status];
+                            return (
+                               <tr key={i} className="group hover:bg-muted/30 transition-colors cursor-pointer">
+                                  <td className="px-5 py-3.5 font-bold text-foreground">{s.name}</td>
+                                  <td className="px-5 py-3.5 text-muted-foreground font-mono">{s.reg}</td>
+                                  <td className="px-5 py-3.5 text-muted-foreground text-xs">{s.supervisor}</td>
+                                  <td className="px-5 py-3.5 text-right font-medium text-foreground">{s.stage}</td>
+                                  <td className="px-5 py-3.5 text-center">
+                                     <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${st.classes} shadow-sm`}>
+                                        {st.label}
+                                     </span>
+                                  </td>
+                               </tr>
+                            );
+                         })}
+                      </tbody>
+                   </table>
+                </div>
+             </motion.div>
+
+             {/* Booking Queue */}
+             <motion.div variants={item} className="card-shadow rounded-2xl bg-card border border-border shadow-sm p-5 space-y-4">
+                <h3 className="font-bold text-foreground text-sm uppercase tracking-widest pb-3 border-b border-border/50 flex items-center gap-2">
+                   <CalendarDays size={16} className="text-secondary"/> Request Queue
+                </h3>
+                <div className="space-y-4">
+                   {BOOKING_QUEUE.map((b, i) => (
+                      <div key={i} className="group relative rounded-xl border border-border/60 hover:border-secondary/40 p-4 transition-all hover:bg-muted/10">
+                         <div className="flex flex-col gap-1 mb-3">
+                            <p className="text-sm font-bold text-foreground group-hover:text-secondary transition-colors underline decoration-secondary/30 underline-offset-4">{b.student}</p>
+                            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">{b.type}</p>
+                         </div>
+                         <p className="text-[11px] text-muted-foreground mb-4 font-medium flex items-center gap-2">
+                            <Clock size={12}/> Preferred: {b.preferred}
+                         </p>
+                         <div className="flex gap-2">
+                            <button className="flex-1 rounded-lg bg-secondary py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-md shadow-secondary/20 hover:bg-secondary/90 transition-all active:scale-[0.98]">Confirm</button>
+                            <button className="rounded-lg border border-border px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-muted transition-colors">Shift</button>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </motion.div>
+          </div>
+        </>
+      ) : (
+        <InstitutionalSetup />
+      )}
     </motion.div>
   );
 }
