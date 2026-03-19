@@ -114,11 +114,20 @@ export default function Login() {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-6">
       {/* Dynamic Background Image */}
+      {/* Brand Structured Background with 75/25 Split */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale-[0.2] contrast-[1.1]"
+        className="absolute inset-0 z-[1] opacity-70"
+        style={{ 
+          background: 'linear-gradient(to bottom, #BF8C2C 0%, #BF8C2C 72%, #14b5d9 78%, #14b5d9 100%)'
+        }}
+      />
+      
+      {/* Background Campus Image Overlay - Deep Layer */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale-[0.3] contrast-[1.2]"
         style={{ 
           backgroundImage: 'url("/rongo_university_campus_abstract_1773834339638.png")',
-          filter: "brightness(0.35) saturate(0.8)"
+          filter: "brightness(0.15) saturate(0.6)"
         }}
       />
       
