@@ -125,7 +125,7 @@ export default function Login() {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.2] contrast-[1.1] brightness-[0.4]"
           style={{ 
-            backgroundImage: 'url("/rongo_university_campus.jpg")',
+            backgroundImage: 'url("/Gemini_Generated_Image_ug1yo5ug1yo5ug1y.png")',
           }}
         />
         {/* DESIGNER OVERLAY: Atmospheric Gradient */}
