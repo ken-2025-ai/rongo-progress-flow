@@ -25,13 +25,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const DEMO_USERS: Record<UserRole, RoleUser> = {
-  student: { name: "Omondi Okech", avatar: "OO", department: "Computer Science", email: "ookech@students.rongo.ac.ke", roles: ["student"] },
-  supervisor: { name: "Dr. Amina Wanjiku", avatar: "AW", department: "Computer Science", email: "awanjiku@rongo.ac.ke", roles: ["supervisor", "panel"] },
-  panel: { name: "Prof. Kibet Langat", avatar: "KL", department: "Information Technology", email: "klangat@rongo.ac.ke", roles: ["panel", "supervisor"] },
-  admin: { name: "Janet Achieng", avatar: "JA", department: "PG Administration", email: "jachieng@rongo.ac.ke", roles: ["admin", "supervisor", "panel"] },
-  school_admin: { name: "Prof. Oduor", avatar: "PO", department: "School Coordinator", email: "poduor@rongo.ac.ke", roles: ["school_admin", "supervisor", "panel"] },
-  dean: { name: "Dr. Silas Nyabuto", avatar: "SN", department: "School of Postgraduate", email: "snyabuto@rongo.ac.ke", roles: ["dean", "supervisor", "panel"] },
-  super_admin: { name: "Ken Dagor", avatar: "SA", department: "System Governance", email: "kenkendagor3@gmail.com", roles: ["super_admin", "dean", "admin", "student"] },
+  student: { id: "demo-student-id", name: "Omondi Okech", avatar: "OO", department: "Computer Science", email: "ookech@students.rongo.ac.ke", roles: ["student"] },
+  supervisor: { id: "demo-supervisor-id", name: "Dr. Amina Wanjiku", avatar: "AW", department: "Computer Science", email: "awanjiku@rongo.ac.ke", roles: ["supervisor", "panel"] },
+  panel: { id: "demo-panel-id", name: "Prof. Kibet Langat", avatar: "KL", department: "Information Technology", email: "klangat@rongo.ac.ke", roles: ["panel", "supervisor"] },
+  admin: { id: "demo-admin-id", name: "Janet Achieng", avatar: "JA", department: "PG Administration", email: "jachieng@rongo.ac.ke", roles: ["admin", "supervisor", "panel"] },
+  school_admin: { id: "demo-school-id", name: "Prof. Oduor", avatar: "PO", department: "School Coordinator", email: "poduor@rongo.ac.ke", roles: ["school_admin", "supervisor", "panel"] },
+  dean: { id: "demo-dean-id", name: "Dr. Silas Nyabuto", avatar: "SN", department: "School of Postgraduate", email: "snyabuto@rongo.ac.ke", roles: ["dean", "supervisor", "panel"] },
+  super_admin: { id: "demo-super-admin-id", name: "Ken Dagor", avatar: "SA", department: "System Governance", email: "kenkendagor3@gmail.com", roles: ["super_admin", "dean", "admin", "student"] },
 };
 
 interface RoleContextType {
