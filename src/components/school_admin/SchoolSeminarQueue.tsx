@@ -338,7 +338,6 @@ export function SchoolSeminarQueue() {
               )}
             </TableBody>
           </Table>
-        </motion.div>
       </motion.div>
     </motion.div>
   );

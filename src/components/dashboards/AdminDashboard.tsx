@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, AlertTriangle, CalendarDays, FileBarChart, Clock, LayoutDashboard, 
-  Building2, Loader2, ChevronRight, CheckCircle2, Sliders, ShieldAlert, Zap, Filter
+  Building2, Loader2, ChevronRight, CheckCircle2, Sliders, ShieldAlert, Zap, Filter, Search
 } from "lucide-react";
 import { InstitutionalSetup } from "./InstitutionalSetup";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function AdminDashboard() {
     try {
       // 1. Fetch Students in Department
       // @ts-ignore
-      const { data: deptStudents, error: sErr } = await supabase
+      const { data: deptStudentsRaw, error: sErr } = await supabase
         .from('students')
         .select(`
           id, registration_number, current_stage, research_title,
@@ -58,6 +58,8 @@ export function AdminDashboard() {
           seminar_bookings(requested_date, status, seminar_level, approved_date)
         `)
         .eq('programme.department_id', user.department_id);
+      
+      const deptStudents = (deptStudentsRaw || []) as any[];
 
       if (sErr) throw sErr;
 
