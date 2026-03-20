@@ -121,13 +121,15 @@ export function AppSidebar({
         collapsed ? "md:w-16" : "w-64 md:w-60"
       }`}
     >
-      {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4 flex-shrink-0">
-        <img src={rongoLogo} alt="Rongo University" className="h-9 w-9 shrink-0 object-contain" />
+      {/* Logo Area - Scholastic White Transition */}
+      <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 flex-shrink-0 bg-white shadow-sm z-50">
+        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 p-1 group-hover:scale-105 transition-transform">
+          <img src={rongoLogo} alt="Rongo University" className="h-8 w-8 shrink-0 object-contain" />
+        </div>
         {(!collapsed || mobileMenuOpen) && (
           <div className="flex flex-col">
-            <span className="text-xs font-bold leading-none text-container-header">RONGO</span>
-            <span className="text-[10px] leading-none text-sidebar-foreground mt-0.5">UNIVERSITY</span>
+            <span className="text-xs font-black leading-none text-primary tracking-tighter">RONGO</span>
+            <span className="text-[10px] font-black leading-none text-slate-400 mt-1 uppercase tracking-widest">University</span>
           </div>
         )}
       </div>
