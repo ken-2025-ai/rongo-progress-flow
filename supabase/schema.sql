@@ -432,6 +432,7 @@ CREATE POLICY "Users view staff profiles" ON public.users
   FOR SELECT
   USING (
     auth.uid() IS NOT NULL
+    AND
     role IN ('SUPERVISOR', 'DEPT_COORDINATOR', 'SCHOOL_COORDINATOR', 'PG_DEAN', 'EXAMINER', 'SUPER_ADMIN')
   );
 
@@ -927,7 +928,7 @@ DROP POLICY IF EXISTS "Dept coordinators insert evaluations" ON public.evaluatio
 CREATE POLICY "Dept coordinators insert evaluations" ON public.evaluations
   FOR INSERT
   WITH CHECK (
-    AND EXISTS (
+    EXISTS (
       SELECT 1
       FROM public.users u
       JOIN public.students s ON s.id = evaluations.student_id
@@ -942,7 +943,7 @@ DROP POLICY IF EXISTS "School coordinators insert evaluations" ON public.evaluat
 CREATE POLICY "School coordinators insert evaluations" ON public.evaluations
   FOR INSERT
   WITH CHECK (
-    AND EXISTS (
+    EXISTS (
       SELECT 1
       FROM public.users u
       JOIN public.departments u_dept ON u_dept.id = u.department_id

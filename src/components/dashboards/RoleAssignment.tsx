@@ -7,6 +7,7 @@ import { containerVariants, itemVariants } from "@/lib/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useRole } from "@/contexts/RoleContext";
 
 const ROLE_COLOR_MAP: Record<string, string> = {
   SUPER_ADMIN: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -18,6 +19,7 @@ const ROLE_COLOR_MAP: Record<string, string> = {
 };
 
 export function RoleAssignment() {
+  const { user: currentUser } = useRole();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +45,11 @@ export function RoleAssignment() {
   };
 
   const handleRoleUpdate = async (userId: string, newRole: string) => {
+    if (currentUser?.id === userId) {
+      toast.error("Operation Denied", { description: "You cannot change your own active role from this console." });
+      return;
+    }
+
     setIsUpdating(userId);
     try {
       // @ts-ignore
@@ -61,7 +68,7 @@ export function RoleAssignment() {
   };
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = (u.first_name + " " + u.last_name + " " + u.email).toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = `${u.first_name || ""} ${u.last_name || ""} ${u.email || ""}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "ALL" || u.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -109,6 +116,7 @@ export function RoleAssignment() {
                <select 
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
+                  aria-label="Filter users by role"
                   className="h-14 w-full bg-[#111] border border-white/5 rounded-2xl pl-12 pr-6 text-white text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
                >
                   <option value="ALL">Filter: All Roles</option>
@@ -183,8 +191,9 @@ export function RoleAssignment() {
                         
                         <div className="grid grid-cols-2 gap-2 mt-2">
                            <select 
-                              disabled={isUpdating === user.id}
+                              disabled={isUpdating === user.id || currentUser?.id === user.id}
                               onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
+                              aria-label={`Update role for ${user.first_name || "user"} ${user.last_name || ""}`}
                               className="h-11 bg-white/5 border border-white/10 rounded-xl px-3 text-[10px] font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary/40 col-span-2 hover:bg-white/10 transition-colors"
                               value={user.role}
                            >

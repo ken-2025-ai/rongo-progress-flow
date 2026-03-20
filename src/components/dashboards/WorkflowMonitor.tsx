@@ -64,6 +64,25 @@ export function WorkflowMonitor() {
   };
 
   const handleStageJump = async (studentId: string, newStage: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const currentIndex = STAGES.indexOf(student.current_stage);
+    const targetIndex = STAGES.indexOf(newStage);
+    if (currentIndex === -1 || targetIndex === -1) {
+      toast.error("Override Denied", { description: "Unknown stage transition requested." });
+      return;
+    }
+    if (currentIndex === targetIndex) return;
+
+    // Safety guard: only allow step-wise transitions to avoid corrupting workflow lineage.
+    if (Math.abs(targetIndex - currentIndex) > 1) {
+      toast.error("Safety Lock", {
+        description: "Direct multi-stage jumps are blocked. Move one stage at a time.",
+      });
+      return;
+    }
+
     if (!confirm(`GLOBAL OVERRIDE: Advancing student directly to ${newStage}. Continue?`)) return;
     
     setIsJumping(studentId);
@@ -142,6 +161,7 @@ export function WorkflowMonitor() {
             <select 
                value={filterStage}
                onChange={(e) => setFilterStage(e.target.value)}
+               aria-label="Filter students by stage"
                className="h-16 w-full md:w-64 bg-white/5 border border-white/5 rounded-3xl px-6 text-white text-[11px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-secondary/20 appearance-none shadow-xl"
             >
                <option value="ALL">Operational Filter: Global</option>

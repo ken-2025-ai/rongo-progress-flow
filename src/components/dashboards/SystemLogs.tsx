@@ -45,7 +45,7 @@ export function SystemLogs() {
             source: 'Logic-Engine-Decision',
             event: 'Verdict Recorded',
             desc: `Board verdict [${e.recommendation}] issued for ${e.students?.registration_number} by ${e.evaluator?.first_name} ${e.evaluator?.last_name}.`,
-            meta: e.remarks?.substring(0, 50) + "..."
+            meta: e.comments ? `${e.comments.substring(0, 50)}...` : "No remarks"
          }))
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -57,7 +57,9 @@ export function SystemLogs() {
     }
   };
 
-  const filteredLogs = logs.filter(l => l.cat === activeTab || activeTab === 'Infrastructure');
+  const filteredLogs = activeTab === 'Full StreamDump'
+    ? logs
+    : logs.filter(l => l.cat === activeTab);
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8 max-w-7xl mx-auto">

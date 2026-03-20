@@ -87,6 +87,8 @@ export function StaffRegistry() {
         setFullName("");
         setEmail("");
         setStaffId("");
+        setSelectedSchool("");
+        setSelectedDept("");
       }
     } catch (err: any) {
       console.error(err);
@@ -178,6 +180,7 @@ export function StaffRegistry() {
                         <select 
                           value={selectedRole}
                           onChange={e => setSelectedRole(e.target.value)}
+                          aria-label="Select staff system role"
                           className="flex h-12 w-full rounded-xl border-2 text-primary font-black border-primary/20 bg-primary/5 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-inner appearance-none"
                         >
                            <option value="SUPERVISOR">Supervisor / Senior Lecturer</option>
@@ -197,14 +200,11 @@ export function StaffRegistry() {
                               setSelectedSchool(e.target.value);
                               setSelectedDept("");
                            }}
+                           aria-label="Select school allocation"
                            className="flex h-12 w-full rounded-xl border border-border/50 bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
                          >
                             <option value="">Choose School Node...</option>
-                            <option value="INFOCOMS">INFOCOMS (Information & Comm.)</option>
-                            <option value="SAES">SAES (Arts & Env.)</option>
-                            <option value="SASSB">SASSB (Social Sciences)</option>
-                            <option value="Education">School of Education</option>
-                            {schools.filter(s => !['INFOCOMS', 'SAES', 'SASSB', 'Education'].includes(s.name)).map(s => (
+                            {schools.map(s => (
                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                          </select>
@@ -215,15 +215,10 @@ export function StaffRegistry() {
                          <select 
                            value={selectedDept}
                            onChange={e => setSelectedDept(e.target.value)}
+                           aria-label="Select department allocation"
                            className="flex h-12 w-full rounded-xl border border-border/50 bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring appearance-none"
                          >
                             <option value="">Allocate Department...</option>
-                            {selectedSchool === 'INFOCOMS' && (
-                               <>
-                                 <option value="IHRS">Information & Health Research</option>
-                                 <option value="CMJ">Comm. & Media Journalism</option>
-                               </>
-                            )}
                             {departments.filter(d => d.school_id === selectedSchool).map(d => (
                                <option key={d.id} value={d.id}>{d.name}</option>
                             ))}
