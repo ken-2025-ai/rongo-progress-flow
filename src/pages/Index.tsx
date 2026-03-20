@@ -113,37 +113,40 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-6">
-      {/* Dynamic Background Image */}
-      {/* Brand Structured Background with 75/25 Split */}
-      <div 
-        className="absolute inset-0 z-[1] opacity-70"
-        style={{ 
-          background: 'linear-gradient(to bottom, #BF8C2C 0%, #BF8C2C 72%, #14b5d9 78%, #14b5d9 100%)'
-        }}
-      />
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4 md:p-6 bg-slate-950 font-sans">
       
-      {/* Background Campus Image Overlay - Deep Layer */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale-[0.3] contrast-[1.2]"
-        style={{ 
-          backgroundImage: 'url("/rongo_university_campus_abstract_1773834339638.png")',
-          filter: "brightness(0.15) saturate(0.6)"
-        }}
-      />
-      
-      {/* Animated Mesh Gradients */}
+      {/* PROFESSIONAL SCHOLASTIC BACKDROP - LAYER 0 */}
       <motion.div 
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
-          x: [0, 50, 0],
-          y: [0, -30, 0]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full opacity-20 blur-[100px] pointer-events-none"
-        style={{ backgroundColor: '#14b5d9' }}
-      />
+        initial={{ scale: 1.1, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2, ease: "easeOut" }}
+        className="absolute inset-0 z-0"
+      >
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.2] contrast-[1.1] brightness-[0.4]"
+          style={{ 
+            backgroundImage: 'url("/rongo_university_campus.jpg")',
+          }}
+        />
+        {/* DESIGNER OVERLAY: Atmospheric Gradient */}
+        <div 
+          className="absolute inset-0 mix-blend-overlay opacity-60"
+          style={{ 
+            background: 'radial-gradient(circle at 70% 30%, #BF8C2C 0%, transparent 60%), radial-gradient(circle at 10% 80%, #14b5d9 0%, transparent 50%)' 
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
+      </motion.div>
+
+      {/* DYNAMIC AMBIENCE - LAYER 1 */}
+      <div className="absolute inset-0 z-[1] overflow-hidden pointer-events-none">
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[20%] -left-[10%] w-[100%] h-[100%] opacity-20 blur-[150px]"
+          style={{ background: 'conic-gradient(from 0deg, #BF8C2C, #14b5d9, #BF8C2C)' }}
+        />
+      </div>
       <motion.div 
         animate={{ 
           scale: [1.2, 1, 1.2],
