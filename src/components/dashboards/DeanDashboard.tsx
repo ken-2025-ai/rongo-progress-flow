@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
-import {
-  Users, AlertTriangle, Clock, TrendingUp, GraduationCap, CalendarDays,
-  ShieldCheck, Loader2, ArrowRight
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Users, AlertTriangle, Clock, TrendingUp, GraduationCap, CalendarDays, 
+  ShieldCheck, Loader2, ArrowRight, Activity, Zap, Search, Globe, Filter, Star
 } from "lucide-react";
 import { containerVariants as container, itemVariants as item } from "@/lib/animations";
 import { useEffect, useState } from "react";
@@ -9,265 +9,266 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 // Stage groupings for pipeline bar
 const STAGE_GROUPS = [
-  { label: "Dept Seminar", stages: ["DEPT_SEMINAR_PENDING", "DEPT_SEMINAR_BOOKED", "DEPT_SEMINAR_COMPLETED"], color: "bg-muted-foreground" },
-  { label: "School Seminar", stages: ["SCHOOL_SEMINAR_PENDING", "SCHOOL_SEMINAR_BOOKED", "SCHOOL_SEMINAR_COMPLETED"], color: "bg-secondary" },
-  { label: "Thesis Ready", stages: ["THESIS_READINESS_CHECK"], color: "bg-status-warning" },
-  { label: "PG Examination", stages: ["PG_EXAMINATION"], color: "bg-primary" },
-  { label: "Viva", stages: ["VIVA_SCHEDULED"], color: "bg-secondary" },
-  { label: "Corrections", stages: ["CORRECTIONS"], color: "bg-destructive" },
-  { label: "Graduated", stages: ["COMPLETED"], color: "bg-success" },
+  { label: "Dept Phase", stages: ["DEPT_SEMINAR_PENDING", "DEPT_SEMINAR_BOOKED", "DEPT_SEMINAR_COMPLETED"], color: "bg-muted-foreground/40", icon: Globe },
+  { label: "School Phase", stages: ["SCHOOL_SEMINAR_PENDING", "SCHOOL_SEMINAR_BOOKED", "SCHOOL_SEMINAR_COMPLETED"], color: "bg-secondary", icon: ShieldCheck },
+  { label: "Readiness Check", stages: ["THESIS_READINESS_CHECK"], color: "bg-status-warning", icon: Activity },
+  { label: "PG Examination", stages: ["PG_EXAMINATION"], color: "bg-primary", icon: Zap },
+  { label: "Viva Defense", stages: ["VIVA_SCHEDULED"], color: "bg-secondary", icon: CalendarDays },
+  { label: "Phase Transit", stages: ["CORRECTIONS", "SCHOOL_SEMINAR_COMPLETED"], color: "bg-destructive", icon: AlertTriangle },
+  { label: "Alumni Node", stages: ["COMPLETED"], color: "bg-success", icon: GraduationCap },
 ];
 
 export function DeanDashboard() {
   const { user } = useRole();
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [students, setStudents] = useState<any[]>([]);
-  const [upcomingVivaSchedule, setUpcomingVivaSchedule] = useState<any[]>([]);
+  const [vivaQueue, setVivaQueue] = useState<any[]>([]);
 
-  useEffect(() => { fetchDashboardData(); }, []);
+  useEffect(() => { fetchDeanIntelligence(); }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDeanIntelligence = async () => {
     setLoading(true);
     try {
-      // Fetch all PG students with their details
+      // 1. Fetch Global Scholastic Ledger
       // @ts-ignore
-      const { data: studentData, error: sErr } = await supabase
+      const { data: sData, error: sErr } = await supabase
         .from('students')
         .select(`
           *,
           user:user_id(first_name, last_name, email),
-          programme:programme_id(name, department:department_id(name)),
-          seminar_bookings(id, requested_date, status, seminar_level, approved_date)
+          programme:programme_id(name, department:department_id(name))
         `)
         .order('updated_at', { ascending: false });
 
       if (sErr) throw sErr;
-      setStudents(studentData || []);
+      setStudents(sData || []);
 
-      // Upcoming viva sessions
+      // 2. Fetch Active Viva Command Chain
       // @ts-ignore
-      const { data: vivaData } = await supabase
+      const { data: vData } = await supabase
         .from('seminar_bookings')
         .select(`
           *,
           student:student_id(
             registration_number,
             user:user_id(first_name, last_name),
-            programme:programme_id(name, department:department_id(name))
+            programme:programme_id(name)
           )
         `)
         .eq('seminar_level', 'VIVA')
         .eq('status', 'APPROVED')
-        .gte('approved_date', new Date().toISOString())
-        .order('approved_date', { ascending: true })
-        .limit(5);
+        .order('requested_date', { ascending: true })
+        .limit(4);
 
-      setUpcomingVivaSchedule(vivaData || []);
-    } catch (err) {
-      console.error("Dean dashboard error:", err);
+      setVivaQueue(vData || []);
+    } catch (err: any) {
+       toast.error("Institutional Link Failure", { description: err.message });
     } finally {
-      setLoading(false);
+       setLoading(false);
     }
   };
 
-  // Derive KPIs
-  const totalStudents = students.length;
-  const readyForExam = students.filter(s => s.current_stage === 'PG_EXAMINATION').length;
-  const vivaScheduled = students.filter(s => s.current_stage === 'VIVA_SCHEDULED').length;
-  const graduated = students.filter(s => s.current_stage === 'COMPLETED').length;
-  const inCorrections = students.filter(s => s.current_stage === 'CORRECTIONS').length;
-
-  // Pipeline stage counts
-  const stageGroups = STAGE_GROUPS.map(g => ({
-    ...g,
-    count: students.filter(s => g.stages.includes(s.current_stage)).length,
-  }));
-  const maxCount = Math.max(...stageGroups.map(g => g.count), 1);
-
-  // 10 most recent students
-  const recentStudents = students.slice(0, 8);
+  const kpis = [
+    { label: "Active Nodes", value: students.length, icon: Users, color: "text-primary", bg: "bg-primary/5", link: null },
+    { label: "Exam Pipeline", value: students.filter(s => s.current_stage === 'PG_EXAMINATION').length, icon: Zap, color: "text-secondary", bg: "bg-secondary/5", link: "/dean-queue" },
+    { label: "Viva Registry", value: students.filter(s => s.current_stage === 'VIVA_SCHEDULED').length, icon: CalendarDays, color: "text-status-warning", bg: "bg-status-warning/5", link: "/viva-scheduling" },
+    { label: "Logic Stalls", value: students.filter(s => s.current_stage === 'CORRECTIONS').length, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/5", link: null },
+    { label: "Scholastic Exit", value: students.filter(s => s.current_stage === 'COMPLETED').length, icon: GraduationCap, color: "text-success", bg: "bg-success/5", link: "/final-clearance" },
+  ];
 
   if (loading) return (
-    <div className="h-96 flex items-center justify-center">
-      <Loader2 className="animate-spin text-primary" size={48} />
-    </div>
+     <div className="h-[600px] flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+     </div>
   );
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-10 max-w-[1700px] mx-auto pb-24">
+      
+      {/* Institutional Command Strip */}
+      <motion.div variants={item} className="bg-card/40 backdrop-blur-2xl p-10 rounded-[48px] border border-border/50 shadow-3xl relative overflow-hidden group">
+         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
+         <div className="absolute -top-20 -right-20 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+            <GraduationCap size={400} />
+         </div>
+         
+         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-10 relative z-10">
+            <div className="flex items-center gap-8">
+               <div className="h-20 w-20 rounded-[28px] bg-black flex items-center justify-center shadow-2xl ring-8 ring-primary/5">
+                  <Globe className="text-primary" size={36} />
+               </div>
+               <div>
+                  <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase italic">Institutional <span className="text-primary">Governance</span></h1>
+                  <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-2 flex items-center gap-3">
+                     <Zap size={14} className="text-secondary animate-pulse"/> PG Dean Command Node Synchronized
+                  </p>
+               </div>
+            </div>
 
-      {/* Welcome Banner */}
-      <motion.div variants={item} className="relative overflow-hidden bg-card border border-border rounded-2xl p-6 shadow-md">
-        <div className="absolute -top-10 -right-10 opacity-[0.04]">
-          <GraduationCap size={200} />
-        </div>
-        <div className="relative z-10">
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Postgraduate School</p>
-          <h1 className="text-2xl font-black text-foreground mt-1">
-            Dean's Institutional Overview
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">
-            Real-time view of all {totalStudents} active postgraduate scholars across the institution.
-          </p>
-        </div>
+            <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+               <div className="relative flex-1 xl:w-96 group">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
+                  <Input 
+                     placeholder="Query Global Scholar Matrix..." 
+                     className="h-16 pl-14 rounded-[24px] bg-background border-2 focus:border-primary transition-all font-bold placeholder:italic shadow-inner"
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+               </div>
+               <Button className="h-16 px-10 rounded-[24px] bg-black hover:bg-primary text-[10px] font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all">
+                  Generate Audit Report
+               </Button>
+            </div>
+         </div>
       </motion.div>
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {[
-          { label: "Total Scholars", value: totalStudents, icon: Users, color: "bg-primary/10 text-primary" },
-          { label: "Exam Ready", value: readyForExam, icon: ShieldCheck, color: "bg-secondary/10 text-secondary", link: "/dean-queue" },
-          { label: "Viva Scheduled", value: vivaScheduled, icon: CalendarDays, color: "bg-status-warning/10 text-status-warning", link: "/viva-scheduling" },
-          { label: "In Corrections", value: inCorrections, icon: AlertTriangle, color: "bg-destructive/10 text-destructive" },
-          { label: "Graduated", value: graduated, icon: TrendingUp, color: "bg-success/10 text-success", link: "/final-clearance" },
-        ].map((kpi) => (
-          <motion.div key={kpi.label} variants={item}>
+      {/* KPI Intelligence Matrix */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+        {kpis.map((kpi, i) => (
+          <motion.div key={i} variants={item}>
             {kpi.link ? (
-              <Link to={kpi.link} className="block group">
-                <div className="card-shadow rounded-2xl bg-card p-5 flex items-start gap-4 border border-border hover:border-primary/40 transition-all hover:shadow-lg">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${kpi.color} shrink-0`}>
-                    <kpi.icon className="h-5 w-5" />
+               <Link to={kpi.link} className="block group">
+                  <div className={`card-shadow rounded-[36px] bg-card p-8 border-2 border-border/50 hover:border-primary/40 transition-all hover:scale-[1.03] shadow-lg relative overflow-hidden`}>
+                     <div className={`absolute -right-6 -top-6 p-10 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${kpi.color}`}>
+                        <kpi.icon size={100} />
+                     </div>
+                     <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl ${kpi.bg} ${kpi.color} group-hover:rotate-12 transition-transform`}>
+                        <kpi.icon size={28} />
+                     </div>
+                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{kpi.label}</p>
+                     <p className="text-4xl font-black text-foreground mt-2 tabular-nums tracking-tighter">{kpi.value.toString().padStart(2, '0')}</p>
                   </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
-                    <p className="text-3xl font-black text-foreground tabular-nums">{kpi.value}</p>
-                  </div>
-                </div>
-              </Link>
+               </Link>
             ) : (
-              <div className="card-shadow rounded-2xl bg-card p-5 flex items-start gap-4 border border-border">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${kpi.color} shrink-0`}>
-                  <kpi.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{kpi.label}</p>
-                  <p className="text-3xl font-black text-foreground tabular-nums">{kpi.value}</p>
-                </div>
-              </div>
+               <div className={`card-shadow rounded-[36px] bg-card p-8 border-2 border-border/50 shadow-lg relative overflow-hidden`}>
+                  <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl ${kpi.bg} ${kpi.color}`}>
+                     <kpi.icon size={28} />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{kpi.label}</p>
+                  <p className="text-4xl font-black text-foreground mt-2 tabular-nums tracking-tighter">{kpi.value.toString().padStart(2, '0')}</p>
+               </div>
             )}
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pipeline Distribution Bar Chart */}
-        <motion.div variants={item} className="lg:col-span-2 card-shadow rounded-2xl bg-card border border-border p-6 shadow-md">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-5">
-            Pipeline Stage Distribution — All Scholars
-          </h3>
-          <div className="space-y-3">
-            {stageGroups.map((g) => (
-              <div key={g.label} className="flex items-center gap-4">
-                <span className="text-xs font-bold text-muted-foreground w-28 shrink-0 truncate">{g.label}</span>
-                <div className="flex-1 h-7 bg-muted/30 rounded-lg overflow-hidden">
-                  <motion.div
-                    className={`h-full ${g.color} rounded-lg`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(g.count / maxCount) * 100}%` }}
-                    transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
-                  />
-                </div>
-                <span className="text-sm font-black text-foreground tabular-nums w-6 text-right">{g.count}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Upcoming Viva Sessions */}
-        <motion.div variants={item} className="card-shadow rounded-2xl bg-card border border-border overflow-hidden shadow-md">
-          <div className="p-4 border-b border-border/50 flex justify-between items-center bg-muted/10">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upcoming Viva Sessions</h3>
-            <Link to="/viva-scheduling">
-              <ArrowRight size={14} className="text-primary" />
-            </Link>
-          </div>
-          <div className="divide-y divide-border/40">
-            {upcomingVivaSchedule.length === 0 ? (
-              <div className="p-6 text-center text-xs text-muted-foreground opacity-60 font-bold uppercase tracking-widest">
-                No viva sessions scheduled
-              </div>
-            ) : (
-              upcomingVivaSchedule.map((session, i) => (
-                <div key={session.id} className="p-4 hover:bg-muted/5 transition-colors">
-                  <p className="font-black text-sm text-foreground">
-                    {session.student?.user?.first_name} {session.student?.user?.last_name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{session.student?.programme?.name}</p>
-                  <p className="text-[10px] font-mono text-primary mt-1">
-                    {session.approved_date ? new Date(session.approved_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="p-3 border-t border-border/30">
-            <Link to="/viva-scheduling">
-              <Button variant="ghost" className="w-full h-9 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5">
-                Manage All Viva Sessions <ArrowRight size={14} className="ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Recent Scholars Table */}
-      <motion.div variants={item} className="card-shadow rounded-2xl bg-card border border-border overflow-hidden shadow-md">
-        <div className="p-4 border-b border-border/50 flex justify-between items-center bg-muted/10">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Scholar Roster</h3>
-          <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px]">{totalStudents} scholars</Badge>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/10">
-                <th className="px-5 py-3 text-left text-[9px] font-black text-muted-foreground uppercase tracking-widest">Scholar</th>
-                <th className="px-5 py-3 text-left text-[9px] font-black text-muted-foreground uppercase tracking-widest">Programme</th>
-                <th className="px-5 py-3 text-left text-[9px] font-black text-muted-foreground uppercase tracking-widest">Department</th>
-                <th className="px-5 py-3 text-left text-[9px] font-black text-muted-foreground uppercase tracking-widest">Current Stage</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {recentStudents.map((student) => {
-                const stageLabel = student.current_stage?.replace(/_/g, ' ') || 'Pre-Registration';
-                const isLate = ['PG_EXAMINATION', 'VIVA_SCHEDULED'].includes(student.current_stage);
-                const isGrad = student.current_stage === 'COMPLETED';
-                return (
-                  <tr key={student.id} className="hover:bg-muted/5 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <p className="font-black text-foreground">{student.user?.first_name} {student.user?.last_name}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{student.registration_number}</p>
-                    </td>
-                    <td className="px-5 py-3.5 text-sm text-muted-foreground font-medium">{student.programme?.name || '—'}</td>
-                    <td className="px-5 py-3.5">
-                      <Badge variant="outline" className="text-[9px] uppercase">{student.programme?.department?.name || '—'}</Badge>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        isGrad
-                          ? 'bg-success/10 text-success'
-                          : isLate
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {stageLabel}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {students.length > 8 && (
-            <div className="p-4 border-t border-border/30 text-center text-xs text-muted-foreground font-bold">
-              Showing 8 of {students.length} scholars.
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+         {/* Global Pipeline Distribution */}
+         <motion.div variants={item} className="xl:col-span-2 card-shadow rounded-[48px] bg-card border border-border shadow-2xl p-10 space-y-10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-[0.01] pointer-events-none">
+               <Activity size={400} />
             </div>
-          )}
-        </div>
-      </motion.div>
+            
+            <div className="flex justify-between items-center relative z-10">
+               <div className="space-y-1">
+                  <h3 className="font-black text-foreground text-xl uppercase tracking-[0.2em] italic flex items-center gap-3">
+                     <TrendingUp className="text-primary" /> Pipeline <span className="text-primary italic">Throughput</span>
+                  </h3>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Institutional Candidate Distribution</p>
+               </div>
+               <Badge className="bg-primary text-white border-none px-6 py-2 rounded-full font-black text-[9px]">REAL-TIME SYNC</Badge>
+            </div>
+
+            <div className="space-y-8 relative z-10">
+               {STAGE_GROUPS.map((g, i) => {
+                  const count = students.filter(s => g.stages.includes(s.current_stage)).length;
+                  const percentage = students.length > 0 ? (count / students.length) * 100 : 0;
+                  return (
+                     <div key={i} className="space-y-3 group cursor-help">
+                        <div className="flex justify-between items-end px-2">
+                           <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${g.color} text-white shadow-lg`}>
+                                 <g.icon size={14} />
+                              </div>
+                              <span className="text-[11px] font-black uppercase tracking-widest text-foreground group-hover:text-primary transition-colors">{g.label}</span>
+                           </div>
+                           <div className="text-right">
+                              <span className="text-xl font-black tabular-nums">{count}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground ml-2">({percentage.toFixed(1)}%)</span>
+                           </div>
+                        </div>
+                        <div className="h-4 bg-muted/20 rounded-full overflow-hidden border border-border/5">
+                           <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${percentage}%` }}
+                              transition={{ duration: 1, delay: i * 0.1, ease: 'circOut' }}
+                              className={`h-full ${g.color} relative overflow-hidden`}
+                           >
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                           </motion.div>
+                        </div>
+                     </div>
+                  );
+               })}
+            </div>
+         </motion.div>
+
+         {/* Viva Command Center */}
+         <div className="space-y-10">
+            <motion.div variants={item} className="card-shadow rounded-[48px] bg-[#0c0c0c] border border-white/5 shadow-3xl overflow-hidden flex flex-col min-h-[450px] border-t-8 border-t-primary relative">
+               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+               
+               <div className="px-10 py-10 border-b border-white/5 flex justify-between items-center bg-white/5 relative z-10">
+                  <h3 className="font-black text-white text-[11px] uppercase tracking-[0.4em] italic flex items-center gap-3">
+                     <CalendarDays className="text-primary"/> Viva <span className="text-primary">Watch</span>
+                  </h3>
+                  <Badge className="bg-primary text-white border-none font-black px-4 py-1.5 rounded-full text-[9px]">{vivaQueue.length} SESSIONS</Badge>
+               </div>
+
+               <div className="p-8 flex-1 space-y-6 relative z-10 overflow-y-auto custom-scrollbar">
+                  {vivaQueue.length === 0 ? (
+                    <div className="py-24 text-center text-white/20 italic font-black uppercase tracking-widest text-[9px] flex flex-col items-center gap-6">
+                       <Clock size={48} className="animate-pulse" />
+                       No Scheduled Vivas Detected
+                    </div>
+                  ) : (
+                    vivaQueue.map((v, i) => (
+                      <div key={i} className="group p-6 rounded-[32px] border border-white/10 bg-white/5 hover:border-primary/40 transition-all cursor-pointer">
+                         <div className="flex justify-between items-start mb-4">
+                            <Badge variant="outline" className="border-primary/30 text-primary text-[8px] font-black uppercase tracking-widest px-3 py-1">{(v.student as any)?.registration_number}</Badge>
+                            <span className="text-[10px] font-black text-white/30 uppercase">{new Date(v.requested_date).toLocaleDateString('en-GB')}</span>
+                         </div>
+                         <h4 className="text-lg font-black text-white group-hover:text-primary transition-colors">{(v.student as any)?.user?.first_name} {(v.student as any)?.user?.last_name}</h4>
+                         <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mt-1 italic">{(v.student as any)?.programme?.name}</p>
+                      </div>
+                    ))
+                  )}
+               </div>
+               
+               <div className="p-8 border-t border-white/5 bg-white/5">
+                  <Link to="/viva-scheduling">
+                     <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-primary hover:bg-transparent justify-between group">
+                        Enter Viva Logistics <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                     </Button>
+                  </Link>
+               </div>
+            </motion.div>
+
+            {/* Quick Action Overlay */}
+            <motion.div variants={item} className="p-10 rounded-[48px] bg-gradient-to-br from-success/10 to-transparent border border-success/20 flex flex-col gap-6 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-10 opacity-[0.05] group-hover:rotate-12 transition-transform duration-700">
+                  <Star size={150} />
+               </div>
+               <div className="space-y-2 relative z-10 text-center">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-success italic">Institutional Exit</h4>
+                  <p className="text-2xl font-black text-foreground italic tracking-tight uppercase leading-none mt-2">ALUMNI <span className="text-success">CONVERSION</span></p>
+                  <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-[0.3em] mt-4 leading-relaxed">System-wide clearance protocol for scholars who have satisfied research requirements.</p>
+               </div>
+               <Link to="/final-clearance" className="relative z-10">
+                  <Button className="w-full h-14 rounded-[20px] bg-success text-white font-black uppercase tracking-[0.3em] text-[9px] shadow-2xl shadow-success/20">
+                     Initialize Final Clearance
+                  </Button>
+               </Link>
+            </motion.div>
+         </div>
+      </div>
 
     </motion.div>
   );

@@ -39,6 +39,10 @@ import { FinalClearance } from "@/components/dean/FinalClearance";
 import { MyEvaluations } from "@/components/panel/MyEvaluations";
 import { PanelSchedule } from "@/components/panel/PanelSchedule";
 import { SubmittedEvaluations } from "@/components/panel/SubmittedEvaluations";
+import { AcademicStructure } from "@/components/dashboards/AcademicStructure";
+import { RoleAssignment } from "@/components/dashboards/RoleAssignment";
+import { WorkflowMonitor } from "@/components/dashboards/WorkflowMonitor";
+import { SystemLogs } from "@/components/dashboards/SystemLogs";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DASHBOARD_TITLES: Record<string, string> = {
@@ -245,12 +249,16 @@ export default function Index() {
          case "/": return <SuperAdminDashboard />;
          case "/student-registry": return <StudentRegistry />;
          case "/staff-registry": return <StaffRegistry />;
+         case "/academic-structure": return <AcademicStructure />;
+         case "/role-assignment": return <RoleAssignment />;
+         case "/workflow-monitor": return <WorkflowMonitor />;
+         case "/system-logs": return <SystemLogs />;
          case "/settings": return <AccountSettings />;
          default: return (
-           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed rounded-3xl" style={{ background: "rgba(25, 73, 115, 0.08)", borderColor: "rgba(20, 181, 217, 0.4)" }}>
-             <div className="p-4 rounded-full mb-4" style={{ background: "rgba(242, 195, 53, 0.15)", color: BRAND_PALETTE.amber }}><span className="text-4xl">⚙️</span></div>
-             <h2 className="text-xl font-bold" style={{ color: BRAND_PALETTE.navy }}>Governance Node Offline</h2>
-             <p className="mt-2 max-w-md" style={{ color: "#5f6a7d" }}>The <span className="font-bold italic" style={{ color: BRAND_PALETTE.cyan }}>{SUPER_ADMIN_TITLES[path]}</span> module is currently locked pending senior architectural approval.</p>
+           <div className="flex flex-col items-center justify-center p-20 text-center border-2 border-dashed border-red-500/30 rounded-3xl bg-red-950/10">
+             <div className="p-4 bg-red-500/20 rounded-full text-red-500 mb-4"><span className="text-4xl">⚙️</span></div>
+             <h2 className="text-xl font-bold text-foreground">Governance Node Offline</h2>
+             <p className="text-muted-foreground mt-2 max-w-md">Our architects are putting the final touches on <span className="font-bold text-red-400 italic font-mono uppercase">{SUPER_ADMIN_TITLES[path]}</span> in some departments.</p>
            </div>
          );
        }

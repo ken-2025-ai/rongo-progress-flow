@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, School, Plus, Trash2, GraduationCap, Building2 } from "lucide-react";
+import { BookOpen, School, Plus, Trash2, GraduationCap, Building2, ListTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
@@ -21,10 +21,8 @@ export function AcademicStructure() {
   }, []);
 
   const fetchData = async () => {
-    // Fetch departments with their school names for the dropdown
     // @ts-ignore
     const { data: dData } = await supabase.from('departments').select('*, schools(name)').order('name');
-    // Fetch programmes with department and school info
     // @ts-ignore
     const { data: pData } = await supabase.from('programmes').select('*, department:department_id(name, schools(name))').order('name');
     
@@ -75,7 +73,6 @@ export function AcademicStructure() {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8 max-w-6xl mx-auto">
       
-      {/* Introduction */}
       <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
            <h2 className="text-2xl font-black text-foreground flex items-center gap-2">
@@ -90,8 +87,6 @@ export function AcademicStructure() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Creation Interface */}
         <motion.div variants={itemVariants} className="lg:col-span-1 space-y-6">
            <div className="card-shadow rounded-3xl bg-card border border-border overflow-hidden border-t-4 border-t-primary shadow-xl">
               <div className="p-5 border-b border-border/50 bg-muted/10">
@@ -131,18 +126,8 @@ export function AcademicStructure() {
                  </Button>
               </form>
            </div>
-
-           <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
-                 <BookOpen size={14}/> Governance Tip
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                 Adding a programme instantly makes it available in the **Student Admission** portal for new scholar enrollment.
-              </p>
-           </div>
         </motion.div>
 
-        {/* Programme Grid/Table */}
         <motion.div variants={itemVariants} className="lg:col-span-2">
            <div className="card-shadow rounded-3xl bg-card border border-border overflow-hidden shadow-sm">
               <div className="p-5 border-b border-border/50 bg-muted/10 flex justify-between items-center">
@@ -185,22 +170,11 @@ export function AcademicStructure() {
                              </td>
                           </tr>
                        ))}
-                       {programmes.length === 0 && (
-                          <tr>
-                             <td colSpan={4} className="p-20 text-center text-muted-foreground text-sm font-medium italic opacity-60">
-                                <div className="flex flex-col items-center gap-3">
-                                   <Building2 size={40} className="opacity-20"/>
-                                   No academic programmes have been defined in the current governance cycle.
-                                </div>
-                             </td>
-                          </tr>
-                       )}
                     </tbody>
                  </table>
               </div>
            </div>
         </motion.div>
-
       </div>
     </motion.div>
   );

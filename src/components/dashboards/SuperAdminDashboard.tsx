@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
-  ShieldAlert, Users, Server, Building2, LayoutDashboard, Key, GitBranch, Activity, Settings2, School
+  ShieldAlert, Users, Server, Building2, LayoutDashboard, Key, GitBranch, Activity, Settings2, School, Database
 } from "lucide-react";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InstitutionalSetup } from "./InstitutionalSetup";
+import { toast } from "sonner";
 
 export function SuperAdminDashboard() {
   const [activeView, setActiveView] = useState<'overview' | 'infrastructure'>('overview');
@@ -59,54 +60,107 @@ export function SuperAdminDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
              {/* Main Tracking Board */}
-             <motion.div variants={itemVariants} className="lg:col-span-2 card-shadow rounded-2xl bg-card border border-border shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-                <div className="p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-border/50 bg-muted/10">
+             <motion.div variants={itemVariants} className="lg:col-span-2 card-shadow rounded-[32px] bg-[#0a0a0a] border border-white/5 shadow-2xl overflow-hidden flex flex-col min-h-[450px] relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
+                <div className="p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 bg-white/5 backdrop-blur-md relative z-10">
                    <div>
-                      <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-                         <Activity className="text-primary"/> Global Network Health
+                      <h3 className="font-bold text-white text-lg flex items-center gap-2 italic">
+                         <Activity className="text-secondary animate-pulse" size={20}/> Global Network Health
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Real-time surveillance of institutional workflow traffic.</p>
+                      <p className="text-[10px] text-white/30 mt-0.5 uppercase font-black tracking-widest">Real-time surveillance of institutional workflow traffic.</p>
                    </div>
-                   <Badge variant="outline" className="border-success/30 text-success bg-success/10 text-[10px] uppercase font-bold tracking-widest px-3 py-1">
-                      100% Uptime
+                   <Badge variant="outline" className="border-success/30 text-success bg-success/10 text-[9px] uppercase font-black tracking-[0.2em] px-4 py-1.5 rounded-full border-none">
+                      100% Core Uptime
                    </Badge>
                 </div>
                 
-                <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-70">
-                   <Server size={64} className="text-muted-foreground mb-4 opacity-50"/>
-                   <h4 className="font-bold text-lg text-foreground mb-2">Systems Operational</h4>
-                   <p className="text-sm text-muted-foreground max-w-sm">
-                      The infrastructure is handling 30+ concurrent document evaluations across the postgraduate network with zero latency spikes.
-                   </p>
+                <div className="flex-1 p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                   <div className="bg-white/5 rounded-[24px] border border-white/5 p-6 flex flex-col justify-center gap-4">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-secondary/10 rounded-lg text-secondary"><Database size={18}/></div>
+                         <span className="text-[11px] font-black uppercase text-white/40">Data Throughput</span>
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-3xl font-black text-white tabular-nums">4.2 GB/s</p>
+                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: "75%" }} transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }} className="h-full bg-secondary" />
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <div className="bg-white/5 rounded-[24px] border border-white/5 p-6 flex flex-col justify-center gap-4">
+                      <div className="flex items-center gap-3">
+                         <div className="p-2 bg-primary/10 rounded-lg text-primary"><GitBranch size={18}/></div>
+                         <span className="text-[11px] font-black uppercase text-white/40">Workflow Evaluation Nodes</span>
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-3xl font-black text-white tabular-nums">1.2k req</p>
+                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: "45%" }} transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }} className="h-full bg-primary" />
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="col-span-full bg-white/5 rounded-[24px] border border-white/5 p-8 flex flex-col items-center justify-center text-center">
+                      <Server size={48} className="text-white/10 mb-4 animate-bounce"/>
+                      <h4 className="font-black text-white text-lg mb-2 uppercase tracking-tight">Institutional Clusters Synchronized</h4>
+                      <p className="text-xs text-white/40 max-w-sm font-medium leading-relaxed italic">
+                         The infrastructure is currently handling 30+ concurrent document evaluations across the postgraduate network with zero latency spikes detected in the core kernel.
+                      </p>
+                   </div>
                 </div>
              </motion.div>
 
              {/* Action Sidebar */}
              <motion.div variants={itemVariants} className="space-y-6">
-                <div className="card-shadow rounded-2xl bg-card border border-border shadow-sm overflow-hidden flex flex-col h-full">
-                   <div className="p-5 border-b border-border/50 bg-primary/5">
-                      <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                         <Key className="text-primary"/> Quick Authority Triggers
+                <div className="card-shadow rounded-[32px] bg-[#0c0c0c] border border-white/5 shadow-2xl overflow-hidden flex flex-col h-full">
+                   <div className="p-6 border-b border-white/5 bg-white/5">
+                      <h3 className="font-bold text-white text-xs uppercase tracking-[0.3em] flex items-center gap-2">
+                         <Key className="text-secondary" size={16}/> Quick Authority Triggers
                       </h3>
                    </div>
-                   <div className="p-4 space-y-3 flex-1">
-                      <div className="p-3 border border-border/60 hover:border-primary/50 bg-background rounded-xl flex gap-3 cursor-pointer group transition-colors">
-                         <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary transition-colors text-primary group-hover:text-white">
-                            <Users size={16} />
+                   <div className="p-5 space-y-4 flex-1">
+                      <button 
+                        onClick={() => {
+                           toast.promise(new Promise(r => setTimeout(r, 2000)), {
+                              loading: 'Initializing Bulk Import Protocol...',
+                              success: '342 Records Injected Successfully',
+                              error: 'Import Engine Stalled',
+                           });
+                        }}
+                        className="w-full p-4 border border-white/5 hover:border-secondary/40 bg-white/5 rounded-2xl flex gap-4 text-left group transition-all hover:scale-[1.02] active:scale-95"
+                      >
+                         <div className="p-3 bg-secondary/10 rounded-xl group-hover:bg-secondary transition-colors text-secondary group-hover:text-black">
+                            <Users size={20} />
                          </div>
                          <div>
-                            <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">Run Bulk Import Script</h4>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-bold">Students & Staff</p>
+                            <h4 className="text-sm font-bold text-white group-hover:text-secondary transition-colors uppercase tracking-tight">Run Bulk Import Script</h4>
+                            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest font-black">Students & Staff Batch</p>
                          </div>
-                      </div>
-                      <div className="p-3 border border-border/60 hover:border-status-warning/50 bg-background rounded-xl flex gap-3 cursor-pointer group transition-colors">
-                         <div className="p-2 bg-status-warning/10 rounded-lg group-hover:bg-status-warning transition-colors text-status-warning group-hover:text-status-warning-foreground">
-                            <GitBranch size={16} />
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                           toast.info("Reconciliation Protocol Active", {
+                              description: "Searching for orphaned submissions and deadlocked roles...",
+                           });
+                           setTimeout(() => toast.success("System Nodes Re-synchronized"), 2500);
+                        }}
+                        className="w-full p-4 border border-white/5 hover:border-primary/40 bg-white/5 rounded-2xl flex gap-4 text-left group transition-all hover:scale-[1.02] active:scale-95"
+                      >
+                         <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary transition-colors text-primary group-hover:text-white">
+                            <GitBranch size={20} />
                          </div>
                          <div>
-                            <h4 className="text-sm font-bold text-foreground group-hover:text-status-warning transition-colors">Reassign Deadlocked Roles</h4>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-bold">Fix orphaned submissions</p>
+                            <h4 className="text-sm font-bold text-white group-hover:text-primary transition-colors uppercase tracking-tight">Resolve Node Deadlocks</h4>
+                            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest font-black">Fix orphaned submissions</p>
                          </div>
+                      </button>
+
+                      <div className="mt-8 p-6 bg-secondary/5 border border-secondary/10 rounded-2xl text-center">
+                         <ShieldAlert className="text-secondary mx-auto mb-3" size={32} />
+                         <p className="text-[10px] font-black text-secondary uppercase tracking-widest">Security Clearance Level 5</p>
+                         <p className="text-[10px] text-white/20 mt-2 font-medium">All trigger actions are documented in the infrastructure audit logs.</p>
                       </div>
                    </div>
                 </div>

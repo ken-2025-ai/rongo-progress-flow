@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, School, Plus, Trash2, ListTree } from "lucide-react";
+import { Building2, School, Plus, Trash2, ListTree, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
@@ -15,6 +15,7 @@ export function InstitutionalSetup() {
   const [newDeptName, setNewDeptName] = useState("");
   const [selectedSchoolId, setSelectedSchoolId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -76,6 +77,38 @@ export function InstitutionalSetup() {
     }
   };
 
+  const handleDeleteSchool = async (id: string, name: string) => {
+    if (!confirm(`Are you certain you wish to remove ${name} from the infrastructure? This may affect linked departments.`)) return;
+    setDeletingId(id);
+    try {
+      // @ts-ignore
+      const { error } = await supabase.from('schools').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("School Node Removed", { description: "Institutional architecture updated." });
+      fetchData();
+    } catch (err: any) {
+      toast.error("Operation Blocked", { description: "Cannot delete school: Active departments or students are mapped to it." });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteDept = async (id: string, name: string) => {
+    if (!confirm(`Confirm decommissioning of ${name} department.`)) return;
+    setDeletingId(id);
+    try {
+      // @ts-ignore
+      const { error } = await supabase.from('departments').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("Branch Decommissioned", { description: "Department removed from active registry." });
+      fetchData();
+    } catch (err: any) {
+      toast.error("Operation Blocked", { description: "Cannot delete: Active programmes or students are linked." });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
       
@@ -116,17 +149,16 @@ export function InstitutionalSetup() {
                     <tr key={school.id} className="group hover:bg-muted/30 transition-colors">
                       <td className="p-3 font-medium text-foreground">{school.name}</td>
                       <td className="p-3 text-right">
-                        <button className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
-                          <Trash2 size={14} />
+                        <button 
+                          onClick={() => handleDeleteSchool(school.id, school.name)}
+                          disabled={deletingId === school.id}
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        >
+                          {deletingId === school.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                         </button>
                       </td>
                     </tr>
                   ))}
-                  {schools.length === 0 && (
-                    <tr>
-                      <td colSpan={2} className="p-10 text-center text-muted-foreground italic opacity-50">No schools recorded in infrastructure.</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
@@ -181,17 +213,16 @@ export function InstitutionalSetup() {
                       <td className="p-3 font-medium text-foreground">{dept.name}</td>
                       <td className="p-3 text-[10px] font-bold text-muted-foreground uppercase">{dept.schools?.name || "Orphaned"}</td>
                       <td className="p-3 text-right">
-                        <button className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
-                          <Trash2 size={14} />
+                        <button 
+                          onClick={() => handleDeleteDept(dept.id, dept.name)}
+                          disabled={deletingId === dept.id}
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        >
+                          {deletingId === dept.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                         </button>
                       </td>
                     </tr>
                   ))}
-                  {departments.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="p-10 text-center text-muted-foreground italic opacity-50">No academic branches mapped yet.</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
