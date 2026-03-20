@@ -61,9 +61,9 @@
     --section-header: 39 63% 46%;
     --section-header-foreground: 0 0% 100%;
 
-    /* Topbar: clean gold */
-    --topbar: 39 63% 43%;
-    --topbar-foreground: 0 0% 100%;
+    /* Topbar: Scholastic White */
+    --topbar: 0 0% 100%;
+    --topbar-foreground: 210 20% 10%;
   }
 }
 

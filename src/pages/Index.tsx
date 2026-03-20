@@ -196,17 +196,55 @@ export default function Login() {
         </div>
 
         <Card className="border-white/10 bg-black/40 backdrop-blur-xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden">
+  const currentTitle = isResetMode ? "Recover Identity" : (isSignUp ? "Create Account" : "Welcome Back");
+  const currentDescription = isResetMode ? "Provision a localized recovery link" : (isSignUp ? "Register a new student node" : "Authenticate to access your workspace");
+
+  return (
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4 md:p-6 bg-slate-950 font-sans">
+      
+      {/* ... (background motion div) ... */}
+      
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md"
+      >
+        <div className="mb-8 text-center">
+          {/* ... (logo/title code remains same) ... */}
+        </div>
+
+        <Card className="border-white/10 bg-black/40 backdrop-blur-xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden">
           <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl text-white">{isSignUp ? "Create Account" : "Welcome Back"}</CardTitle>
+            <CardTitle className="text-2xl text-white">{currentTitle}</CardTitle>
             <CardDescription className="text-white/50">
-              {isSignUp ? "Register a new student node" : "Authenticate to access your workspace"}
+              {currentDescription}
             </CardDescription>
           </CardHeader>
 
-          <form onSubmit={handleAuth}>
+          <form onSubmit={currentAction}>
             <CardContent className="space-y-6 pt-4">
               
-              <div className="space-y-4">
+              {resetSent ? (
+                <div className="text-center py-6 space-y-4">
+                   <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-success/20">
+                      <Mail className="text-success" size={32} />
+                   </div>
+                   <p className="text-white font-bold">Check Your Scholastic Inbox</p>
+                   <p className="text-white/60 text-sm">We have dispatched a secure recovery node to your registered email address.</p>
+                   <Button 
+                      variant="outline" 
+                      className="mt-4 border-white/10 text-white" 
+                      onClick={() => { setResetMode(false); setResetSent(false); }}
+                    >
+                      Return to Authentication
+                    </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* ... fields ... */}
+                </div>
+              )}
                 {isSignUp && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2 relative group">
