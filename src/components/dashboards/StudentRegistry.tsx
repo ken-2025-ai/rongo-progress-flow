@@ -4,6 +4,7 @@ import { UserPlus, UploadCloud, GraduationCap, School, Building2, MapPin, Loader
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

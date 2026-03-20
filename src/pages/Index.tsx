@@ -18,6 +18,7 @@ export default function Login() {
   const [lastName, setLastName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
+  const { login } = useRole();
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -333,22 +334,22 @@ export default function Login() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { role: "Student", id: "ookech@students.rongo.ac.ke", pass: "pgstudent", color: "border-white/5 bg-white/5" },
-              { role: "Supervisor", id: "awanjiku@rongo.ac.ke", pass: "supervisor", color: "border-primary/20 bg-primary/5" },
-              { role: "Dept Coord", id: "jachieng@rongo.ac.ke", pass: "pgcoordinator", color: "border-[#BF8C2C]/20 bg-[#BF8C2C]/5" },
-              { role: "School Coord", id: "poduor@rongo.ac.ke", pass: "pgcoordinator", color: "border-primary/30 bg-primary/10" },
-              { role: "PG Dean", id: "snyabuto@rongo.ac.ke", pass: "pgdean", color: "border-success/20 bg-success/5" },
-              { role: "System Admin", id: "kenkendagor3@gmail.com", pass: "rongoadmin", color: "border-destructive/20 bg-destructive/5" },
+              { role: "Student", id: "student", label: "Scholar", color: "border-white/5 bg-white/5" },
+              { role: "Supervisor", id: "supervisor", label: "Supervisor", color: "border-primary/20 bg-primary/5" },
+              { role: "Dept Coord", id: "admin", label: "Dept Admin", color: "border-[#BF8C2C]/20 bg-[#BF8C2C]/5" },
+              { role: "School Coord", id: "school_admin", label: "School Admin", color: "border-primary/30 bg-primary/10" },
+              { role: "PG Dean", id: "dean", label: "Dean", color: "border-success/20 bg-success/5" },
+              { role: "System Admin", id: "super_admin", label: "Global Admin", color: "border-destructive/20 bg-destructive/5" },
             ].map((cred) => (
               <button
                 key={cred.id}
                 type="button"
                 onClick={() => {
-                  setLoginIdentifier(cred.id);
-                  setPassword(cred.pass);
-                  toast.success(`Injecting ${cred.role} Credentials`, {
-                    description: "Auto-fill complete. Press secure login to continue."
+                  login(cred.id as any);
+                  toast.success(`Simulation Active: ${cred.label}`, {
+                    description: "Handshake bypassed. Entered scholastic simulation portal."
                   });
+                  setTimeout(() => navigate("/"), 500);
                 }}
                 className={`p-3 rounded-2xl border text-left transition-all hover:scale-[1.05] active:scale-[0.95] group hover:border-white/40 ${cred.color} backdrop-blur-sm`}
               >
@@ -356,8 +357,8 @@ export default function Login() {
                   {cred.role}
                 </p>
                 <div className="space-y-0.5">
-                  <p className="text-[8px] font-mono text-white/30 truncate">{cred.id.split('@')[0]}...</p>
-                  <p className="text-[8px] font-mono text-white/50">{cred.pass}</p>
+                  <p className="text-[8px] font-mono text-white/30 truncate">Bypass Auth...</p>
+                  <p className="text-[8px] font-mono text-white/50">Instant Access</p>
                 </div>
               </button>
             ))}
@@ -365,7 +366,7 @@ export default function Login() {
           
           <div className="mt-6 text-center">
             <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest italic flex items-center justify-center gap-2">
-              <LogIn size={10} /> Select a role node to pre-populate the authentication handshake
+              <LogIn size={10} /> Select a role node to instantly ENTER the scholastic simulation (No Password Required)
             </p>
           </div>
         </motion.div>
