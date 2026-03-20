@@ -7,41 +7,42 @@ export type UserRole = "student" | "supervisor" | "panel" | "admin" | "school_ad
 interface RoleUser {
   id?: string;
   name: string;
-  role: UserRole;
   avatar: string;
   department?: string;
   department_id?: string;
   email?: string;
+  roles: UserRole[]; // THE MASTER LIST
 }
 
-const DEMO_USERS: Record<UserRole, RoleUser> = {
-  student: { name: "Omondi Okech", role: "student", avatar: "OO", department: "Computer Science", email: "ookech@students.rongo.ac.ke" },
-  supervisor: { name: "Dr. Amina Wanjiku", role: "supervisor", avatar: "AW", department: "Computer Science", email: "awanjiku@rongo.ac.ke" },
-  panel: { name: "Prof. Kibet Langat", role: "panel", avatar: "KL", department: "Information Technology", email: "klangat@rongo.ac.ke" },
-  admin: { name: "Janet Achieng", role: "admin", avatar: "JA", department: "PG Administration", email: "jachieng@rongo.ac.ke" },
-  school_admin: { name: "Prof. Oduor", role: "school_admin", avatar: "PO", department: "School Coordinator", email: "poduor@rongo.ac.ke" },
-  dean: { name: "Dr. Silas Nyabuto", role: "dean", avatar: "SN", department: "School of Postgraduate", email: "snyabuto@rongo.ac.ke" },
-  super_admin: { name: "Ken Dagor", role: "super_admin", avatar: "SA", department: "System Governance", email: "kenkendagor3@gmail.com" },
-};
-
 const ROLE_LABELS: Record<UserRole, string> = {
-  student: "Student",
+  student: "Scholar",
   supervisor: "Supervisor",
-  panel: "Panel Member",
+  panel: "Panelist",
   admin: "Dept Coordinator",
   school_admin: "School Admin",
   dean: "PG Dean",
   super_admin: "System Administrator",
 };
 
+const DEMO_USERS: Record<UserRole, RoleUser> = {
+  student: { name: "Omondi Okech", avatar: "OO", department: "Computer Science", email: "ookech@students.rongo.ac.ke", roles: ["student"] },
+  supervisor: { name: "Dr. Amina Wanjiku", avatar: "AW", department: "Computer Science", email: "awanjiku@rongo.ac.ke", roles: ["supervisor", "panel"] },
+  panel: { name: "Prof. Kibet Langat", avatar: "KL", department: "Information Technology", email: "klangat@rongo.ac.ke", roles: ["panel", "supervisor"] },
+  admin: { name: "Janet Achieng", avatar: "JA", department: "PG Administration", email: "jachieng@rongo.ac.ke", roles: ["admin", "supervisor", "panel"] },
+  school_admin: { name: "Prof. Oduor", avatar: "PO", department: "School Coordinator", email: "poduor@rongo.ac.ke", roles: ["school_admin", "supervisor", "panel"] },
+  dean: { name: "Dr. Silas Nyabuto", avatar: "SN", department: "School of Postgraduate", email: "snyabuto@rongo.ac.ke", roles: ["dean", "supervisor", "panel"] },
+  super_admin: { name: "Ken Dagor", avatar: "SA", department: "System Governance", email: "kenkendagor3@gmail.com", roles: ["super_admin", "dean", "admin", "student"] },
+};
+
 interface RoleContextType {
   currentRole: UserRole;
-  user: RoleUser;
+  user: RoleUser | null;
   roleLabel: string;
-  allRoles: UserRole[];
+  availableRoles: UserRole[];
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (role: UserRole) => void;
+  switchRole: (role: UserRole) => void;
   logout: () => void;
 }
 
@@ -50,7 +51,7 @@ const RoleContext = createContext<RoleContextType | null>(null);
 export function RoleProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentRole, setCurrentRole] = useState<UserRole>("student");
-  const [authUser, setAuthUser] = useState<RoleUser>(DEMO_USERS.student);
+  const [authUser, setAuthUser] = useState<RoleUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -59,8 +60,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     async function initializeAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session && session.user) {
+        if (session?.user) {
           await fetchUserProfile(session.user.id, session.user.email);
         } else {
           if (mounted) {
@@ -82,7 +82,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       } else if (event === 'SIGNED_OUT') {
         if (mounted) {
           setIsAuthenticated(false);
-          setAuthUser(DEMO_USERS.student);
+          setAuthUser(null);
         }
       }
     });
@@ -95,69 +95,84 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string, email?: string) => {
     try {
-      // For MVP, if they logged in specifically as kenkendagor3 - super admin shortcut
-      if (email === "ngichelle99@gmail.com") {
-        setCurrentRole("super_admin");
-        setAuthUser({
-          id: userId,
-          name: "michelle njeri",
-          role: "super_admin",
-          avatar: "SA",
-          email: email
-        });
-        setIsAuthenticated(true);
-        setIsLoading(false);
-        return;
-      }
-      
+      // 1. Get Base User Role
       // @ts-ignore
-      const { data: rawData, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
-      const data: any = rawData;
+      const { data: userDataRaw } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+      const userData = userDataRaw as any;
       
-      if (data) {
-        // Map DB enum to frontend roles
-        const dbRoleToAppRole: Record<string, UserRole> = {
-          'STUDENT': 'student',
-          'SUPERVISOR': 'supervisor',
-          'DEPT_COORDINATOR': 'admin',
-          'SCHOOL_COORDINATOR': 'school_admin',
-          'PG_DEAN': 'dean',
-          'EXAMINER': 'panel',
-          'SUPER_ADMIN': 'super_admin'
-        };
-        
-        const mappedRole = dbRoleToAppRole[data.role] || 'student';
-        
-        setCurrentRole(mappedRole);
-        setAuthUser({
-          id: userId,
-          name: `${data.first_name || ""} ${data.last_name || ""}`,
-          role: mappedRole,
-          avatar: (data.first_name?.[0] || "") + (data.last_name?.[0] || ""),
-          email: data.email,
-          department_id: data.department_id
-        });
-        setIsAuthenticated(true);
-      } else if (error) {
-         console.error("Profile fetch error:", error.message);
-         // Fallback to local state if db row missing but auth session exists
-         setIsAuthenticated(true);
-      } else {
-         // Create mock fallback logic if user exists in auth but not `public.users` yet
-         setIsAuthenticated(true);
+      // 2. Discovery: Is this user also a student?
+      // @ts-ignore
+      const { data: studentDataRaw } = await supabase.from('students').select('id').eq('user_id', userId).maybeSingle();
+      const studentData = studentDataRaw as any;
+
+      const roles: UserRole[] = [];
+      const dbRoleToAppRole: Record<string, UserRole> = {
+        'STUDENT': 'student',
+        'SUPERVISOR': 'supervisor',
+        'DEPT_COORDINATOR': 'admin',
+        'SCHOOL_COORDINATOR': 'school_admin',
+        'PG_DEAN': 'dean',
+        'EXAMINER': 'panel',
+        'SUPER_ADMIN': 'super_admin'
+      };
+
+      if (userData?.role) {
+        const primaryRole = dbRoleToAppRole[userData.role] || 'student';
+        roles.push(primaryRole);
+
+        if (['dean', 'school_admin', 'admin'].includes(primaryRole)) {
+           if (!roles.includes('supervisor')) roles.push('supervisor');
+           if (!roles.includes('panel')) roles.push('panel');
+        }
       }
+
+      if (studentData) {
+        if (!roles.includes('student')) roles.push('student');
+      }
+
+      if (roles.length === 0) roles.push('student');
+
+      if (email === "ngichelle99@gmail.com" || email === "kenkendagor3@gmail.com") {
+        if (!roles.includes('super_admin')) roles.unshift('super_admin');
+      }
+
+      const detectedUser: RoleUser = {
+        id: userId,
+        name: userData ? `${userData.first_name || ""} ${userData.last_name || ""}` : "Scholastic User",
+        avatar: userData ? (userData.first_name?.[0] || "") + (userData.last_name?.[0] || "") : "SU",
+        email: email,
+        department_id: userData?.department_id,
+        roles: roles
+      };
+
+      setAuthUser(detectedUser);
+      setCurrentRole(roles[0]);
+      setIsAuthenticated(true);
       setIsLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error("Discovery Failure:", err);
       setIsLoading(false);
     }
   };
 
-  // Keep legacy explicit login for fallback UI mapping (e.g. initial dev states)
   const login = (role: UserRole) => {
+    const demoUser = DEMO_USERS[role];
+    setAuthUser(demoUser);
     setCurrentRole(role);
-    setAuthUser(DEMO_USERS[role]);
     setIsAuthenticated(true);
+    toast.success("Simulation Active", {
+      description: `Logged in as ${demoUser.name} (${ROLE_LABELS[role]}) in discovery mode.`,
+    });
+  };
+
+  const switchRole = (role: UserRole) => {
+    if (authUser?.roles.includes(role)) {
+      setCurrentRole(role);
+      toast.info(`Switched perspective: ${ROLE_LABELS[role]}`, {
+        description: `Your access controls have been refactored for the ${ROLE_LABELS[role]} portal.`,
+        duration: 2000
+      });
+    }
   };
 
   const logout = async () => {
@@ -171,10 +186,11 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         currentRole,
         user: authUser,
         roleLabel: ROLE_LABELS[currentRole],
-        allRoles: Object.keys(DEMO_USERS) as UserRole[],
+        availableRoles: authUser?.roles || [],
         isAuthenticated,
         isLoading,
         login,
+        switchRole,
         logout,
       }}
     >

@@ -4,6 +4,7 @@ import { UserPlus, Briefcase, Key, Hash, ShieldCheck, Database, Loader2 } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
