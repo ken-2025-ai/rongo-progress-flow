@@ -17,10 +17,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 
 const DECISION_OPTS = [
-  { id: 'pass', label: 'Pass', colorClass: 'bg-success/10 text-success border-success/20', icon: CheckCircle2, rec: 'Cleared for PG Examination' },
-  { id: 'minor', label: 'Minor Corrections', colorClass: 'bg-status-warning/10 text-status-warning border-status-warning/20', icon: AlertTriangle, rec: 'Minor Corrections Required' },
-  { id: 'major', label: 'Major Corrections', colorClass: 'bg-destructive/10 text-destructive border-destructive/20', icon: AlertTriangle, rec: 'Major Corrections Required' },
-  { id: 'repeat', label: 'Repeat School', colorClass: 'bg-muted text-muted-foreground border-border', icon: PlayCircle, rec: 'Repeat School Seminar' },
+  // Must match `recommendation_enum` in Supabase
+  { id: 'pass', label: 'Pass', colorClass: 'bg-success/10 text-success border-success/20', icon: CheckCircle2, rec: 'PASS' },
+  { id: 'minor', label: 'Minor Corrections', colorClass: 'bg-status-warning/10 text-status-warning border-status-warning/20', icon: AlertTriangle, rec: 'MINOR_CORRECTIONS' },
+  { id: 'major', label: 'Major Corrections', colorClass: 'bg-destructive/10 text-destructive border-destructive/20', icon: AlertTriangle, rec: 'MAJOR_CORRECTIONS' },
+  { id: 'repeat', label: 'Repeat School', colorClass: 'bg-muted text-muted-foreground border-border', icon: PlayCircle, rec: 'REPEAT_SEMINAR' },
 ];
 
 export function SchoolSeminarSchedule() {

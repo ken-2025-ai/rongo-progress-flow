@@ -11,8 +11,8 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE stage_code_type AS ENUM (
-      'DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED',
-      'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED',
+      'DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_BOOKED', 'DEPT_SEMINAR_COMPLETED',
+      'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_BOOKED', 'SCHOOL_SEMINAR_COMPLETED',
       'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 
       'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'
     );
@@ -20,28 +20,67 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+-- Backfill enum values for existing deployments
+DO $$ BEGIN
+  ALTER TYPE stage_code_type ADD VALUE 'DEPT_SEMINAR_BOOKED';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE stage_code_type ADD VALUE 'SCHOOL_SEMINAR_BOOKED';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
 DO $$ BEGIN
     CREATE TYPE status_code_type AS ENUM (
-      'PENDING_SUPERVISOR', 'PENDING_DEPT', 'APPROVED', 'RETURNED', 'REJECTED'
+      'PENDING', 'PENDING_SUPERVISOR', 'PENDING_DEPT',
+      'APPROVED', 'COMPLETED', 'RETURNED', 'REJECTED'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE status_code_type ADD VALUE 'PENDING';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE status_code_type ADD VALUE 'COMPLETED';
+EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
     CREATE TYPE evaluation_type_enum AS ENUM (
-      'DEPT_SEMINAR', 'SCHOOL_SEMINAR', 'VIVA'
+      'DEPT_SEMINAR', 'SCHOOL_SEMINAR', 'VIVA',
+      'THESIS_REVIEW', 'SEMINAR_II', 'PG_EXAMINATION'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
 DO $$ BEGIN
+  ALTER TYPE evaluation_type_enum ADD VALUE 'THESIS_REVIEW';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE evaluation_type_enum ADD VALUE 'SEMINAR_II';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE evaluation_type_enum ADD VALUE 'PG_EXAMINATION';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
     CREATE TYPE recommendation_enum AS ENUM (
-      'PASS', 'MINOR_CORRECTIONS', 'MAJOR_CORRECTIONS', 'REPEAT_SEMINAR', 'FAIL'
+      'PENDING', 'PASS', 'MINOR_CORRECTIONS', 'MAJOR_CORRECTIONS', 'REPEAT_SEMINAR', 'FAIL'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE recommendation_enum ADD VALUE 'PENDING';
+EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
 
@@ -77,6 +116,10 @@ CREATE TABLE IF NOT EXISTS public.departments (
   name TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Needed for seed INSERT ... ON CONFLICT DO NOTHING
+CREATE UNIQUE INDEX IF NOT EXISTS uq_departments_school_name
+  ON public.departments (school_id, name);
 
 -- Link users to departments for non-students
 ALTER TABLE public.users ADD CONSTRAINT fk_user_dept FOREIGN KEY (department_id) REFERENCES public.departments(id);
@@ -151,11 +194,15 @@ CREATE TABLE IF NOT EXISTS public.progress_reports (
   quarter TEXT NOT NULL,
   year TEXT NOT NULL,
   synopsis TEXT,
+  notes TEXT,
   file_url TEXT NOT NULL,
   status status_code_type DEFAULT 'PENDING',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.progress_reports
+  ADD COLUMN IF NOT EXISTS notes TEXT;
 
 
 -- ==========================================
@@ -170,19 +217,36 @@ CREATE TABLE IF NOT EXISTS public.seminar_bookings (
   approved_date DATE,
   status status_code_type DEFAULT 'PENDING',
   approved_by UUID REFERENCES public.users(id),
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.seminar_bookings
+  ADD COLUMN IF NOT EXISTS notes TEXT;
 
 CREATE TABLE IF NOT EXISTS public.evaluations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-  examiner_id UUID REFERENCES public.users(id),
+  evaluator_id UUID REFERENCES public.users(id),
   evaluation_type evaluation_type_enum NOT NULL,
   score NUMERIC(5,2),
   recommendation recommendation_enum NOT NULL,
   comments TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Compatibility: older DBs used examiner_id; frontend expects evaluator_id.
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'evaluations'
+      AND column_name = 'examiner_id'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.evaluations RENAME COLUMN examiner_id TO evaluator_id';
+  END IF;
+EXCEPTION WHEN undefined_column THEN null;
+END $$;
 
 
 -- ==========================================
@@ -292,76 +356,772 @@ ALTER TABLE public.seminar_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.thesis_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.corrections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_stage_history ENABLE ROW LEVEL SECURITY;
 
--- 1. GLOBAL SUPER ADMIN BYPASS
-CREATE POLICY "Super Admin Bypass Users" ON public.users FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Schools" ON public.schools FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Departments" ON public.departments FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Students" ON public.students FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Reports" ON public.progress_reports FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Bookings" ON public.seminar_bookings FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
-CREATE POLICY "Super Admin Bypass Thesis" ON public.thesis_submissions FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'SUPER_ADMIN'));
+-- ------------------------------------------------------------
+-- 9.1 Super Admin bypass (covers USING + WITH CHECK)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Super Admin Bypass Users" ON public.users;
+CREATE POLICY "Super Admin Bypass Users" ON public.users
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
 
--- 2. USER/STUDENT POLICIES
+DROP POLICY IF EXISTS "Super Admin Bypass Schools" ON public.schools;
+CREATE POLICY "Super Admin Bypass Schools" ON public.schools
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Departments" ON public.departments;
+CREATE POLICY "Super Admin Bypass Departments" ON public.departments
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Students" ON public.students;
+CREATE POLICY "Super Admin Bypass Students" ON public.students
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Reports" ON public.progress_reports;
+CREATE POLICY "Super Admin Bypass Reports" ON public.progress_reports
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Bookings" ON public.seminar_bookings;
+CREATE POLICY "Super Admin Bypass Bookings" ON public.seminar_bookings
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Thesis" ON public.thesis_submissions;
+CREATE POLICY "Super Admin Bypass Thesis" ON public.thesis_submissions
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Corrections" ON public.corrections;
+CREATE POLICY "Super Admin Bypass Corrections" ON public.corrections
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Evaluations" ON public.evaluations;
+CREATE POLICY "Super Admin Bypass Evaluations" ON public.evaluations
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Stage History" ON public.student_stage_history;
+CREATE POLICY "Super Admin Bypass Stage History" ON public.student_stage_history
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+-- ------------------------------------------------------------
+-- 9.2 users (names used in joins)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Users view self" ON public.users;
 CREATE POLICY "Users view self" ON public.users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Students view own profile" ON public.students FOR SELECT USING (auth.uid() = user_id);
 
--- 3. PROGRESS REPORTS POLICIES
-CREATE POLICY "Students insert own reports" ON public.progress_reports FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
-);
+DROP POLICY IF EXISTS "Users view staff profiles" ON public.users;
+CREATE POLICY "Users view staff profiles" ON public.users
+  FOR SELECT
+  USING (
+    auth.uid() IS NOT NULL
+    role IN ('SUPERVISOR', 'DEPT_COORDINATOR', 'SCHOOL_COORDINATOR', 'PG_DEAN', 'EXAMINER', 'SUPER_ADMIN')
+  );
 
-CREATE POLICY "Students view own reports" ON public.progress_reports FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
-);
-
-CREATE POLICY "Supervisors view mentee reports" ON public.progress_reports FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
-);
-
-CREATE POLICY "Supervisors update mentee reports" ON public.progress_reports FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM public.students WHERE supervisor_id = auth.uid() AND id = student_id)
-);
-
-CREATE POLICY "Coordinators view department reports" ON public.progress_reports FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM public.users u 
-    JOIN public.students s ON s.id = student_id
-    JOIN public.programmes p ON p.id = s.programme_id
-    WHERE u.id = auth.uid() 
-    AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
-    AND u.department_id = p.department_id
-  )
-);
-
-CREATE POLICY "Coordinators update department reports" ON public.progress_reports FOR UPDATE USING (
-  EXISTS (
-    SELECT 1 FROM public.users u 
-    JOIN public.students s ON s.id = student_id
-    JOIN public.programmes p ON p.id = s.programme_id
-    WHERE u.id = auth.uid() 
-    AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
-    AND u.department_id = p.department_id
-  )
-);
-
--- 4. SEMINAR BOOKINGS POLICIES
-CREATE POLICY "Students manage own bookings" ON public.seminar_bookings FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
-);
-CREATE POLICY "Coordinators handle bookings" ON public.seminar_bookings FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR'))
-);
-
--- 5. THESIS SUBMISSIONS POLICIES
-CREATE POLICY "Students upload thesis" ON public.thesis_submissions FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM public.students WHERE user_id = auth.uid() AND id = student_id)
-);
-CREATE POLICY "Academic staff view thesis" ON public.thesis_submissions FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('SUPERVISOR', 'DEPT_COORDINATOR', 'PG_DEAN', 'EXAMINER'))
-);
-
--- 6. PUBLIC ENTITIES
+-- ------------------------------------------------------------
+-- 9.3 Public entities
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Public view schools" ON public.schools;
 CREATE POLICY "Public view schools" ON public.schools FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public view depts" ON public.departments;
 CREATE POLICY "Public view depts" ON public.departments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public view programmes" ON public.programmes;
 CREATE POLICY "Public view programmes" ON public.programmes FOR SELECT USING (true);
+
+-- ------------------------------------------------------------
+-- 9.4 students (read + procedural stage updates)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students view own profile" ON public.students;
+CREATE POLICY "Students view own profile" ON public.students
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Supervisors view mentees" ON public.students;
+CREATE POLICY "Supervisors view mentees" ON public.students
+  FOR SELECT
+  USING (supervisor_id = auth.uid());
+
+DROP POLICY IF EXISTS "Dept coordinators view dept students" ON public.students;
+CREATE POLICY "Dept coordinators view dept students" ON public.students
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.programmes p ON p.id = students.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators view school students" ON public.students;
+CREATE POLICY "School coordinators view school students" ON public.students
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.programmes p ON p.id = students.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean view exam pipeline students" ON public.students;
+CREATE POLICY "PG Dean view exam pipeline students" ON public.students
+  FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN'));
+
+DROP POLICY IF EXISTS "Examiners view exam queue students" ON public.students;
+CREATE POLICY "Examiners view exam queue students" ON public.students
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'EXAMINER'
+        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'VIVA_SCHEDULED')
+    )
+  );
+
+-- UPDATE policies for stage transitions
+DROP POLICY IF EXISTS "Dept coordinators update dept students stage" ON public.students;
+CREATE POLICY "Dept coordinators update dept students stage" ON public.students
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.programmes p ON p.id = students.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.programmes p ON p.id = students.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators update school students stage" ON public.students;
+CREATE POLICY "School coordinators update school students stage" ON public.students
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.programmes p ON p.id = students.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.programmes p ON p.id = students.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean update exam pipeline students stage" ON public.students;
+CREATE POLICY "PG Dean update exam pipeline students stage" ON public.students
+  FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN')
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN')
+  );
+
+DROP POLICY IF EXISTS "Examiners update exam queue students stage" ON public.students;
+CREATE POLICY "Examiners update exam queue students stage" ON public.students
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'EXAMINER'
+        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'VIVA_SCHEDULED')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'EXAMINER'
+    )
+  );
+
+-- ------------------------------------------------------------
+-- 9.5 progress_reports (read + updates)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students insert own reports" ON public.progress_reports;
+CREATE POLICY "Students insert own reports" ON public.progress_reports
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = progress_reports.student_id)
+  );
+
+DROP POLICY IF EXISTS "Students view own reports" ON public.progress_reports;
+CREATE POLICY "Students view own reports" ON public.progress_reports
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = progress_reports.student_id)
+  );
+
+DROP POLICY IF EXISTS "Supervisors view mentee reports" ON public.progress_reports;
+CREATE POLICY "Supervisors view mentee reports" ON public.progress_reports
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.supervisor_id = auth.uid() AND s.id = progress_reports.student_id)
+  );
+
+DROP POLICY IF EXISTS "Supervisors update mentee reports" ON public.progress_reports;
+CREATE POLICY "Supervisors update mentee reports" ON public.progress_reports
+  FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.supervisor_id = auth.uid() AND s.id = progress_reports.student_id)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.supervisor_id = auth.uid() AND s.id = progress_reports.student_id)
+  );
+
+DROP POLICY IF EXISTS "Coordinators view department reports" ON public.progress_reports;
+CREATE POLICY "Coordinators view department reports" ON public.progress_reports
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = progress_reports.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
+        AND (
+          (u.role = 'DEPT_COORDINATOR' AND u.department_id = p.department_id)
+          OR
+          (u.role = 'SCHOOL_COORDINATOR' AND EXISTS (
+            SELECT 1
+            FROM public.departments u_dept
+            JOIN public.departments d ON d.id = p.department_id
+            WHERE u_dept.id = u.department_id
+              AND d.school_id = u_dept.school_id
+          ))
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Coordinators update department reports" ON public.progress_reports;
+CREATE POLICY "Coordinators update department reports" ON public.progress_reports
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = progress_reports.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
+        AND (
+          (u.role = 'DEPT_COORDINATOR' AND u.department_id = p.department_id)
+          OR
+          (u.role = 'SCHOOL_COORDINATOR' AND EXISTS (
+            SELECT 1
+            FROM public.departments u_dept
+            JOIN public.departments d ON d.id = p.department_id
+            WHERE u_dept.id = u.department_id
+              AND d.school_id = u_dept.school_id
+          ))
+        )
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = progress_reports.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role IN ('DEPT_COORDINATOR', 'SCHOOL_COORDINATOR')
+        AND (
+          (u.role = 'DEPT_COORDINATOR' AND u.department_id = p.department_id)
+          OR
+          (u.role = 'SCHOOL_COORDINATOR' AND EXISTS (
+            SELECT 1
+            FROM public.departments u_dept
+            JOIN public.departments d ON d.id = p.department_id
+            WHERE u_dept.id = u.department_id
+              AND d.school_id = u_dept.school_id
+          ))
+        )
+    )
+  );
+
+-- ------------------------------------------------------------
+-- 9.6 seminar_bookings
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students read own bookings" ON public.seminar_bookings;
+CREATE POLICY "Students read own bookings" ON public.seminar_bookings
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = seminar_bookings.student_id)
+  );
+
+DROP POLICY IF EXISTS "Students insert own bookings" ON public.seminar_bookings;
+CREATE POLICY "Students insert own bookings" ON public.seminar_bookings
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = seminar_bookings.student_id)
+  );
+
+DROP POLICY IF EXISTS "Dept coordinators manage dept bookings" ON public.seminar_bookings;
+CREATE POLICY "Dept coordinators manage dept bookings" ON public.seminar_bookings
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "Dept coordinators update dept bookings" ON public.seminar_bookings;
+CREATE POLICY "Dept coordinators update dept bookings" ON public.seminar_bookings
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators manage school bookings" ON public.seminar_bookings;
+CREATE POLICY "School coordinators manage school bookings" ON public.seminar_bookings
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators update school bookings" ON public.seminar_bookings;
+CREATE POLICY "School coordinators update school bookings" ON public.seminar_bookings
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean view viva bookings" ON public.seminar_bookings;
+CREATE POLICY "PG Dean view viva bookings" ON public.seminar_bookings
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'PG_DEAN'
+        AND seminar_bookings.seminar_level = 'VIVA'
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean upsert viva bookings" ON public.seminar_bookings;
+CREATE POLICY "PG Dean upsert viva bookings" ON public.seminar_bookings
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = seminar_bookings.student_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'PG_DEAN'
+        AND seminar_bookings.seminar_level = 'VIVA'
+        AND s.current_stage = 'VIVA_SCHEDULED'
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean update viva bookings" ON public.seminar_bookings;
+CREATE POLICY "PG Dean update viva bookings" ON public.seminar_bookings
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'PG_DEAN'
+        AND seminar_bookings.seminar_level = 'VIVA'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.id = auth.uid()
+        AND u.role = 'PG_DEAN'
+        AND seminar_bookings.seminar_level = 'VIVA'
+    )
+  );
+
+-- ------------------------------------------------------------
+-- 9.7 corrections (StudentDashboard reads them)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students view own corrections" ON public.corrections;
+CREATE POLICY "Students view own corrections" ON public.corrections
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = corrections.student_id)
+  );
+
+-- ------------------------------------------------------------
+-- 9.8 evaluations (read + insert for staff)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students view own evaluations" ON public.evaluations;
+CREATE POLICY "Students view own evaluations" ON public.evaluations
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = evaluations.student_id)
+  );
+
+DROP POLICY IF EXISTS "Supervisors view mentee evaluations" ON public.evaluations;
+CREATE POLICY "Supervisors view mentee evaluations" ON public.evaluations
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.supervisor_id = auth.uid() AND s.id = evaluations.student_id)
+  );
+
+DROP POLICY IF EXISTS "Dept coordinators view dept evaluations" ON public.evaluations;
+CREATE POLICY "Dept coordinators view dept evaluations" ON public.evaluations
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = evaluations.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators view school evaluations" ON public.evaluations;
+CREATE POLICY "School coordinators view school evaluations" ON public.evaluations
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.students s ON s.id = evaluations.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean view evaluations" ON public.evaluations;
+CREATE POLICY "PG Dean view evaluations" ON public.evaluations
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN')
+  );
+
+DROP POLICY IF EXISTS "Examiners view their own evaluations" ON public.evaluations;
+CREATE POLICY "Examiners view their own evaluations" ON public.evaluations
+  FOR SELECT
+  USING (evaluator_id = auth.uid());
+
+DROP POLICY IF EXISTS "Dept coordinators insert evaluations" ON public.evaluations;
+CREATE POLICY "Dept coordinators insert evaluations" ON public.evaluations
+  FOR INSERT
+  WITH CHECK (
+    AND EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.students s ON s.id = evaluations.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'DEPT_COORDINATOR'
+        AND u.department_id = p.department_id
+    )
+  );
+
+DROP POLICY IF EXISTS "School coordinators insert evaluations" ON public.evaluations;
+CREATE POLICY "School coordinators insert evaluations" ON public.evaluations
+  FOR INSERT
+  WITH CHECK (
+    AND EXISTS (
+      SELECT 1
+      FROM public.users u
+      JOIN public.departments u_dept ON u_dept.id = u.department_id
+      JOIN public.students s ON s.id = evaluations.student_id
+      JOIN public.programmes p ON p.id = s.programme_id
+      JOIN public.departments d ON d.id = p.department_id
+      WHERE u.id = auth.uid()
+        AND u.role = 'SCHOOL_COORDINATOR'
+        AND d.school_id = u_dept.school_id
+    )
+  );
+
+DROP POLICY IF EXISTS "PG Dean insert evaluations" ON public.evaluations;
+CREATE POLICY "PG Dean insert evaluations" ON public.evaluations
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN')
+  );
+
+DROP POLICY IF EXISTS "Examiners insert evaluations" ON public.evaluations;
+CREATE POLICY "Examiners insert evaluations" ON public.evaluations
+  FOR INSERT
+  WITH CHECK (
+    evaluator_id = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.students s
+      WHERE s.id = evaluations.student_id
+        AND s.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'VIVA_SCHEDULED')
+    )
+  );
+
+-- ------------------------------------------------------------
+-- 9.9 student_stage_history (for timeline)
+-- ------------------------------------------------------------
+DROP POLICY IF EXISTS "Students view own stage history" ON public.student_stage_history;
+CREATE POLICY "Students view own stage history" ON public.student_stage_history
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = student_stage_history.student_id)
+  );
+
+DROP POLICY IF EXISTS "Staff view stage history by jurisdiction" ON public.student_stage_history;
+CREATE POLICY "Staff view stage history by jurisdiction" ON public.student_stage_history
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.students s
+      LEFT JOIN public.programmes p ON p.id = s.programme_id
+      WHERE s.id = student_stage_history.student_id
+        AND (
+          s.supervisor_id = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'DEPT_COORDINATOR'
+              AND p.department_id = u.department_id
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            JOIN public.departments u_dept ON u_dept.id = u.department_id
+            JOIN public.departments d ON d.id = p.department_id
+            WHERE u.id = auth.uid()
+              AND u.role = 'SCHOOL_COORDINATOR'
+              AND d.school_id = u_dept.school_id
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'PG_DEAN'
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'EXAMINER'
+          )
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Staff insert stage history via triggers" ON public.student_stage_history;
+CREATE POLICY "Staff insert stage history via triggers" ON public.student_stage_history
+  FOR INSERT
+  WITH CHECK (
+    changed_by = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.students s
+      LEFT JOIN public.programmes p ON p.id = s.programme_id
+      WHERE s.id = student_stage_history.student_id
+        AND (
+          s.user_id = auth.uid()
+          OR s.supervisor_id = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'DEPT_COORDINATOR'
+              AND p.department_id = u.department_id
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM public.users u
+            JOIN public.departments u_dept ON u_dept.id = u.department_id
+            JOIN public.departments d ON d.id = p.department_id
+            WHERE u.id = auth.uid()
+              AND u.role = 'SCHOOL_COORDINATOR'
+              AND d.school_id = u_dept.school_id
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'PG_DEAN'
+              AND s.current_stage IN ('THESIS_READINESS_CHECK','PG_EXAMINATION','VIVA_SCHEDULED','CORRECTIONS','COMPLETED')
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.users u
+            WHERE u.id = auth.uid()
+              AND u.role = 'EXAMINER'
+              AND s.current_stage IN ('SCHOOL_SEMINAR_BOOKED','PG_EXAMINATION','VIVA_SCHEDULED')
+          )
+        )
+    )
+  );
+
+-- ============================================================
+-- Thesis/escalation tables: indexes to support upserts/joins
+-- ============================================================
+CREATE UNIQUE INDEX IF NOT EXISTS uq_seminar_bookings_student_level
+  ON public.seminar_bookings (student_id, seminar_level);
+
+CREATE INDEX IF NOT EXISTS idx_progress_reports_student_created
+  ON public.progress_reports (student_id, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_progress_reports_student_quarter_year
+  ON public.progress_reports (student_id, quarter, year);
+
+CREATE INDEX IF NOT EXISTS idx_evaluations_student_created
+  ON public.evaluations (student_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_evaluations_evaluator
+  ON public.evaluations (evaluator_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_thesis_submissions_student_version
+  ON public.thesis_submissions (student_id, version_number);
+
+-- ============================================================
+-- student_stage_history logging trigger
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.log_student_stage_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.current_stage IS DISTINCT FROM OLD.current_stage THEN
+    INSERT INTO public.student_stage_history (
+      student_id,
+      stage_code,
+      status_code,
+      changed_by,
+      notes
+    )
+    VALUES (
+      NEW.id,
+      NEW.current_stage,
+      CASE
+        WHEN NEW.current_stage = 'CORRECTIONS' THEN 'RETURNED'::status_code_type
+        WHEN NEW.current_stage LIKE '%_COMPLETED' OR NEW.current_stage = 'COMPLETED' THEN 'APPROVED'::status_code_type
+        ELSE 'PENDING'::status_code_type
+      END,
+      auth.uid(),
+      NULL
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_student_stage_history ON public.students;
+CREATE TRIGGER trg_student_stage_history
+  AFTER UPDATE OF current_stage ON public.students
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.log_student_stage_change();
