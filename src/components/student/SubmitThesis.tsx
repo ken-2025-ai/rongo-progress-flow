@@ -98,7 +98,12 @@ export function SubmitThesis() {
 
   const processFile = useCallback(
     async (file: File) => {
-      if (!student || !user?.id) return;
+      if (!student || !user?.id) {
+        toast.error("Not eligible to upload", {
+          description: "Your student profile could not be found. Sign in with a registered student account.",
+        });
+        return;
+      }
 
       const validation = validateFile(file);
       if (!validation.valid) {
@@ -117,8 +122,21 @@ export function SubmitThesis() {
             upsert: false,
           });
 
-        if (uploadError) throw uploadError;
-        if (!uploadData?.path) throw new Error("Upload returned no path");
+        if (uploadError) {
+          const msg = uploadError.message || String(uploadError);
+          if (msg.includes("Bucket not found") || msg.includes("not found")) {
+            throw new Error(
+              "Storage bucket 'thesis_payloads' is not set up. Ask your admin to run the database migrations."
+            );
+          }
+          if (msg.includes("policy") || msg.includes("denied") || msg.includes("403")) {
+            throw new Error(
+              "Permission denied. Ensure your account is linked to a student record."
+            );
+          }
+          throw uploadError;
+        }
+        if (!uploadData?.path) throw new Error("Upload succeeded but no path returned.");
 
         const { data: urlData } = supabase.storage
           .from("thesis_payloads")
@@ -133,14 +151,25 @@ export function SubmitThesis() {
           submitted_by: user.id,
         });
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          const dbMsg = dbError.message || String(dbError);
+          if (dbMsg.includes("duplicate") || dbMsg.includes("unique")) {
+            throw new Error("A submission with this version already exists. Refresh and try again.");
+          }
+          if (dbMsg.includes("policy") || dbMsg.includes("RLS")) {
+            throw new Error("Database permission denied. Contact your admin.");
+          }
+          throw dbError;
+        }
 
         toast.success("Thesis submitted successfully", {
           description: `Version ${versionNumber} has been logged for supervisor review.`,
         });
         await fetchStudentAndSubmissions();
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Upload failed.";
+        const message =
+          err instanceof Error ? err.message : "Upload failed. Check the console for details.";
+        console.error("[SubmitThesis] Upload error:", err);
         toast.error("Submission failed", { description: message });
       } finally {
         setIsUploading(false);
@@ -218,6 +247,28 @@ export function SubmitThesis() {
       <div className="flex h-96 items-center justify-center">
         <Loader2 className="text-primary animate-spin" size={40} />
       </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col items-center justify-center py-24 text-center px-4"
+      >
+        <FileWarning className="text-amber-500 mb-4" size={48} />
+        <h3 className="text-lg font-bold text-foreground">Student profile required</h3>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          Thesis submission is only available for registered students. Your account is not linked
+          to a student record—sign in with your student credentials or ask your department to
+          complete your registration.
+        </p>
+        <p className="text-xs text-muted-foreground mt-4">
+          Demo/simulation logins do not have student records.
+        </p>
+      </motion.div>
     );
   }
 
