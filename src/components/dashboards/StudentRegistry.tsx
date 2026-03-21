@@ -48,6 +48,7 @@ export function StudentRegistry() {
   const [selectedDeptId, setSelectedDeptId] = useState("");
   const [selectedLevel, setSelectedLevel] = useState(""); // masters | phd
   const [selectedProgId, setSelectedProgId] = useState("");
+  const [selectedSupervisorId, setSelectedSupervisorId] = useState("");
   const [intakeYear, setIntakeYear] = useState("2026");
   
   // Management State
@@ -112,7 +113,7 @@ export function StudentRegistry() {
   const handleStudentRegistration = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    if (!email || !selectedProgId || !firstName || !admissionNumber) {
+    if (!email || !selectedProgId || !firstName || !admissionNumber || !selectedSchoolId || !selectedDeptId) {
       toast.error("Validation Violation", { description: "Core identity parameters are missing." });
       return;
     }
@@ -133,6 +134,7 @@ export function StudentRegistry() {
           user_id: authData.user.id,
           registration_number: admissionNumber,
           programme_id: selectedProgId,
+          supervisor_id: selectedSupervisorId || null,
           current_stage: 'DEPT_SEMINAR_PENDING'
         });
 
@@ -142,7 +144,7 @@ export function StudentRegistry() {
         
         // Reset and refresh
         setFirstName(""); setLastName(""); setEmail(""); setAdmissionNumber("");
-        setSelectedSchoolId(""); setSelectedDeptId(""); setSelectedLevel(""); setSelectedProgId("");
+        setSelectedSchoolId(""); setSelectedDeptId(""); setSelectedLevel(""); setSelectedProgId(""); setSelectedSupervisorId("");
         fetchInitialData();
       }
     } catch (err: any) {
@@ -321,6 +323,7 @@ export function StudentRegistry() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-2 flex items-center gap-2"><School size={14} className="text-secondary"/> Host School</label>
                   <select
+                    aria-label="Host school"
                     value={selectedSchoolId}
                     onChange={e => setSelectedSchoolId(e.target.value)}
                     className={selectClass}
@@ -334,6 +337,7 @@ export function StudentRegistry() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-2 flex items-center gap-2"><Building2 size={14} className="text-secondary"/> Department Mapping</label>
                   <select
+                    aria-label="Department mapping"
                     value={selectedDeptId}
                     onChange={e => setSelectedDeptId(e.target.value)}
                     disabled={!selectedSchoolId}
@@ -377,6 +381,7 @@ export function StudentRegistry() {
               <div className="space-y-3 px-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-2 flex items-center gap-2"><BookOpen size={14} className="text-secondary"/> Target Degree Programme</label>
                 <select
+                  aria-label="Target degree programme"
                   value={selectedProgId}
                   onChange={e => setSelectedProgId(e.target.value)}
                   disabled={!selectedDeptId || !selectedLevel}
@@ -397,6 +402,26 @@ export function StudentRegistry() {
                     })
                     .map(p => (
                       <option key={p.id} value={p.id} className="font-bold py-2">{p.name} ({p.code})</option>
+                    ))
+                  }
+                </select>
+              </div>
+
+              <div className="space-y-3 px-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-2 flex items-center gap-2"><UserCheck size={14} className="text-secondary"/> Primary Supervisor (Optional)</label>
+                <select
+                  aria-label="Primary supervisor"
+                  value={selectedSupervisorId}
+                  onChange={e => setSelectedSupervisorId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="" className="italic">— Assign later —</option>
+                  {supervisors
+                    .filter(s => !selectedDeptId || s.department_id === selectedDeptId)
+                    .map(s => (
+                      <option key={s.id} value={s.id} className="font-bold py-2">
+                        {s.first_name} {s.last_name} ({s.staff_id || "NO-ID"})
+                      </option>
                     ))
                   }
                 </select>

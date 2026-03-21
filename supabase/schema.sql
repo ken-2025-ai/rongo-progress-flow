@@ -377,6 +377,7 @@ END $$;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.schools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.programmes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progress_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seminar_bookings ENABLE ROW LEVEL SECURITY;
@@ -403,6 +404,12 @@ CREATE POLICY "Super Admin Bypass Schools" ON public.schools
 
 DROP POLICY IF EXISTS "Super Admin Bypass Departments" ON public.departments;
 CREATE POLICY "Super Admin Bypass Departments" ON public.departments
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Programmes" ON public.programmes;
+CREATE POLICY "Super Admin Bypass Programmes" ON public.programmes
   FOR ALL
   USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
   WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
