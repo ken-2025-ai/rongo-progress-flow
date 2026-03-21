@@ -11,14 +11,14 @@ export function TopNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => v
   const { currentRole, switchRole, user, roleLabel, availableRoles, logout } = useRole();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-topbar text-topbar-foreground px-4 md:px-8 border-b border-white/5 shadow-2xl backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-topbar text-topbar-foreground px-4 md:px-8 border-b border-white/10 shadow-2xl backdrop-blur-xl">
       
       {/* Mobile Trigger */}
       <button 
-        className="flex h-12 w-12 items-center justify-center rounded-xl hover:bg-slate-100 transition-all md:hidden -ml-2 group"
+        className="flex h-12 w-12 items-center justify-center rounded-xl hover:bg-white/10 transition-all md:hidden -ml-2 group"
         onClick={onMobileMenuToggle}
       >
-        <Menu className="h-6 w-6 text-slate-600 group-hover:scale-110 transition-transform" />
+        <Menu className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
       </button>
 
       <div className="flex-1" />
@@ -27,36 +27,36 @@ export function TopNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => v
       <div className="relative group hidden sm:block">
         <Input
           placeholder="Search institutional nodes..."
-          className="h-10 w-[300px] pl-4 pr-10 text-sm bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus:bg-white focus:w-[400px] transition-all rounded-2xl"
+          className="h-10 w-[300px] pl-4 pr-10 text-sm bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:w-[400px] transition-all rounded-2xl"
         />
-        <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
+        <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 group-focus-within:text-white transition-colors" />
       </div>
 
       <div className="flex items-center gap-4">
         {/* Active Badge */}
-        <Badge variant="outline" className="hidden lg:flex bg-slate-50 border-slate-200 text-slate-600 font-black text-[9px] uppercase tracking-widest px-3 py-1 gap-2 rounded-full h-8">
-           <ShieldCheck size={12} className="text-primary"/> Active Portal: <span className="text-slate-900 italic">{roleLabel}</span>
+        <Badge variant="outline" className="hidden lg:flex bg-white/10 border-white/20 text-white font-black text-[9px] uppercase tracking-widest px-3 py-1 gap-2 rounded-full h-8 backdrop-blur-md">
+           <ShieldCheck size={12} className="text-white"/> Active Portal: <span className="text-white italic">{roleLabel}</span>
         </Badge>
         
-        <button className="h-10 w-10 rounded-xl hover:bg-slate-50 flex items-center justify-center transition-all relative group border border-transparent hover:border-slate-100">
-           <Bell size={18} className="text-slate-400 group-hover:text-primary" />
-           <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full border-2 border-white pulse-shimmer" />
+        <button className="h-10 w-10 rounded-xl hover:bg-white/10 flex items-center justify-center transition-all relative group border border-transparent hover:border-white/20">
+           <Bell size={18} className="text-white/60 group-hover:text-white" />
+           <span className="absolute top-2 right-2 h-2 w-2 bg-white rounded-full border-2 border-topbar pulse-shimmer" />
         </button>
 
-        <div className="h-8 w-px bg-slate-200 mx-1" />
+        <div className="h-8 w-px bg-white/10 mx-1" />
 
         {/* Unified Identity Node */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 rounded-2xl p-1 pr-3 hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-white text-xs font-black shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
+            <button className="flex items-center gap-3 rounded-2xl p-1 pr-3 hover:bg-white/10 transition-all border border-transparent hover:border-white/20 group">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary text-xs font-black shadow-lg group-hover:scale-105 transition-transform">
                 {user?.avatar}
               </div>
               <div className="flex flex-col items-start hidden sm:flex text-left">
-                <span className="text-xs font-black tracking-tight leading-none text-slate-900">{user?.name}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">{roleLabel}</span>
+                <span className="text-xs font-black tracking-tight leading-none text-white">{user?.name}</span>
+                <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1 italic">{roleLabel}</span>
               </div>
-              <ChevronDown className="h-3 w-3 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronDown className="h-3 w-3 text-white/60 group-hover:text-white transition-colors" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72 p-2 bg-card border-border shadow-4xl rounded-2xl">
