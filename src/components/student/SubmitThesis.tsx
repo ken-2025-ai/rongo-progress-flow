@@ -64,13 +64,16 @@ export function SubmitThesis() {
 
       if (uploadError) throw uploadError;
 
+      const versionNumber = (submissions.length || 0) + 1;
+      const { data: urlData } = supabase.storage.from('thesis_payloads').getPublicUrl(data.path);
+      const fileUrl = urlData?.publicUrl ?? '';
+
       // @ts-ignore
       const { error: dbError } = await supabase.from('thesis_submissions').insert({
         student_id: student.id,
-        file_path: data.path,
-        version_label: `v${submissions.length + 1}`,
-        submission_level: submissionLevel,
-        status: 'PENDING'
+        version_number: versionNumber,
+        file_url: fileUrl,
+        submitted_by: user?.id ?? undefined,
       });
 
       if (dbError) throw dbError;
@@ -109,7 +112,8 @@ export function SubmitThesis() {
           <div className="space-y-6">
              <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Academic Clearance Level</label>
-                <select 
+                <select
+                   aria-label="Academic clearance level"
                    value={submissionLevel}
                    onChange={(e) => setSubmissionLevel(e.target.value)}
                    className="w-full bg-muted/20 border-border rounded-xl h-11 px-4 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -172,28 +176,22 @@ export function SubmitThesis() {
                             <FileText size={20} />
                          </div>
                          <div>
-                            <p className="text-sm font-black text-foreground antialiased">{sub.version_label}</p>
+                            <p className="text-sm font-black text-foreground antialiased">v{sub.version_number ?? sub.version_label ?? '-'}</p>
                             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{new Date(sub.created_at).toLocaleDateString()}</p>
                          </div>
                       </div>
-                      <Badge className={`text-[9px] font-black uppercase border-none px-3 py-1 rounded-full ${
-                        sub.status === "APPROVED" ? "bg-success text-white" : 
-                        sub.status === "REJECTED" ? "bg-destructive text-white" : "bg-status-warning text-white"
-                      }`}>
-                        {sub.status}
+                      <Badge className="text-[9px] font-black uppercase border-none px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                        {sub.locked_for_exam ? "Locked" : "Submitted"}
                       </Badge>
                     </div>
                     
-                    <div className="p-4 rounded-2xl bg-muted/10 border border-border/40 mb-4">
-                       <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mb-1">Peer Feedback Node</p>
-                       <p className="text-[11px] font-medium italic text-foreground/80 leading-relaxed">
-                          "{sub.comments || 'Supervisor analysis pending synchronization.'}"
-                       </p>
-                    </div>
-                    
-                    <Button variant="outline" className="w-full rounded-xl border-border bg-transparent text-[10px] font-black uppercase tracking-widest h-10 hover:bg-secondary hover:text-white transition-all">
-                       Download Audit Piece
-                    </Button>
+                    {sub.file_url && (
+                      <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="block">
+                        <Button variant="outline" className="w-full rounded-xl border-border bg-transparent text-[10px] font-black uppercase tracking-widest h-10 hover:bg-secondary hover:text-white transition-all">
+                          Download Audit Piece
+                        </Button>
+                      </a>
+                    )}
                   </div>
                 ))
             )}

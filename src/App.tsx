@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,12 +7,24 @@ import { RoleProvider, useRole } from "@/contexts/RoleContext";
 import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Index.tsx";
 import SuperAdminLogin from "./pages/SuperAdminLogin.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useRole();
+  const location = useLocation();
+  const isResetPassword = location.pathname === "/reset-password";
+
+  // Reset password page is always accessible (recovery links may land here with session)
+  if (isResetPassword) {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -31,6 +43,7 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/system-admin" element={<SuperAdminLogin />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

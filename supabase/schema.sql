@@ -403,6 +403,21 @@ CREATE POLICY "Super Admin Bypass Thesis" ON public.thesis_submissions
   USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
   WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
 
+-- Students: view and insert own thesis submissions
+DROP POLICY IF EXISTS "Students view own thesis submissions" ON public.thesis_submissions;
+CREATE POLICY "Students view own thesis submissions" ON public.thesis_submissions
+  FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = thesis_submissions.student_id)
+  );
+
+DROP POLICY IF EXISTS "Students insert own thesis submissions" ON public.thesis_submissions;
+CREATE POLICY "Students insert own thesis submissions" ON public.thesis_submissions
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.students s WHERE s.user_id = auth.uid() AND s.id = thesis_submissions.student_id)
+  );
+
 DROP POLICY IF EXISTS "Super Admin Bypass Corrections" ON public.corrections;
 CREATE POLICY "Super Admin Bypass Corrections" ON public.corrections
   FOR ALL

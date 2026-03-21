@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export type UserRole = "student" | "supervisor" | "panel" | "admin" | "school_admin" | "dean" | "super_admin";
@@ -59,6 +59,13 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
     async function initializeAuth() {
       try {
+        if (!isSupabaseConfigured) {
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
+          return;
+        }
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           await fetchUserProfile(session.user.id, session.user.email);

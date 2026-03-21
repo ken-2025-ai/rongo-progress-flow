@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Fingerprint, Mail, Lock, User, UserPlus, LogIn, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -26,7 +26,12 @@ export default function Login() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (!isSupabaseConfigured) {
+      toast.error("Configuration Required", {
+        description: "Supabase environment variables are not set. Configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      });
+      return;
+    }
     if (isResetMode) {
       handleForgotPassword();
       return;
@@ -42,21 +47,15 @@ export default function Login() {
         const { data, error } = await supabase.auth.signUp({
           email: loginIdentifier,
           password,
+          options: {
+            data: { first_name: firstName, last_name: lastName },
+          },
         });
 
         if (error) throw error;
         
         if (data.user) {
-          const { error: dbError } = await supabase.from('users').insert({
-             id: data.user.id,
-             email: data.user.email,
-             first_name: firstName,
-             last_name: lastName,
-             role: 'STUDENT'
-          });
-
-          if (dbError) throw dbError;
-
+          // handle_new_user trigger inserts into users; no manual insert needed
           toast.success("Account created successfully!", {
             description: "You have been registered. You can now login.",
           });

@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "rongo-progress-flow",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
     {
