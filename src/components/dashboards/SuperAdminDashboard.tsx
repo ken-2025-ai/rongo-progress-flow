@@ -1,35 +1,67 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
-  ShieldAlert, Users, Server, Building2, LayoutDashboard, Key, GitBranch, Activity, Settings2, School, Database
+  ShieldAlert, Users, Server, Building2, LayoutDashboard, Key, GitBranch, Activity, Settings2, School, Database, BookOpen, UserCheck
 } from "lucide-react";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AcademicStructure } from "./AcademicStructure";
+import { InstitutionalSetup } from "./InstitutionalSetup";
+import { StaffRegistry } from "./StaffRegistry";
+import { StudentRegistry } from "./StudentRegistry";
+import { RoleAssignment } from "./RoleAssignment";
 import { toast } from "sonner";
 
 export function SuperAdminDashboard() {
-  const [activeView, setActiveView] = useState<'overview' | 'infrastructure'>('overview');
+  const [activeView, setActiveView] = useState<'overview' | 'institutional' | 'academic' | 'staff' | 'students' | 'roles'>('overview');
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 max-w-7xl mx-auto pb-20">
       
       {/* Sub-Navigation */}
-      <div className="flex items-center gap-2 p-1.5 bg-card/60 backdrop-blur-md rounded-2xl border border-border w-fit shadow-sm">
+      <div className="flex items-center gap-2 p-2 bg-card/60 backdrop-blur-md rounded-2xl border border-border overflow-x-auto shadow-sm">
         <Button 
           variant={activeView === 'overview' ? 'default' : 'ghost'}
           onClick={() => setActiveView('overview')}
-          className={`rounded-xl h-10 px-5 text-xs font-bold uppercase tracking-widest transition-all ${activeView === 'overview' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground'}`}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'overview' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground'}`}
         >
-          <LayoutDashboard size={14} className="mr-2" /> Global Overview
+          <LayoutDashboard size={14} className="mr-2" /> Overview
         </Button>
         <Button 
-          variant={activeView === 'infrastructure' ? 'default' : 'ghost'}
-          onClick={() => setActiveView('infrastructure')}
-          className={`rounded-xl h-10 px-5 text-xs font-bold uppercase tracking-widest transition-all ${activeView === 'infrastructure' ? 'bg-secondary text-white shadow-lg shadow-secondary/20' : 'text-muted-foreground'}`}
+          variant={activeView === 'institutional' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('institutional')}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'institutional' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-muted-foreground'}`}
         >
-          <Building2 size={14} className="mr-2" /> Institutional Architecture
+          <Building2 size={14} className="mr-2" /> Setup
+        </Button>
+        <Button 
+          variant={activeView === 'academic' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('academic')}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'academic' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'text-muted-foreground'}`}
+        >
+          <BookOpen size={14} className="mr-2" /> Academic
+        </Button>
+        <Button 
+          variant={activeView === 'staff' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('staff')}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'staff' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'text-muted-foreground'}`}
+        >
+          <Users size={14} className="mr-2" /> Staff
+        </Button>
+        <Button 
+          variant={activeView === 'students' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('students')}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'students' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-muted-foreground'}`}
+        >
+          <School size={14} className="mr-2" /> Students
+        </Button>
+        <Button 
+          variant={activeView === 'roles' ? 'default' : 'ghost'}
+          onClick={() => setActiveView('roles')}
+          className={`rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeView === 'roles' ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'text-muted-foreground'}`}
+        >
+          <Key size={14} className="mr-2" /> Roles
         </Button>
       </div>
 
@@ -167,8 +199,16 @@ export function SuperAdminDashboard() {
              </motion.div>
           </div>
         </>
-      ) : (
+      ) : activeView === 'institutional' ? (
+        <InstitutionalSetup />
+      ) : activeView === 'academic' ? (
         <AcademicStructure />
+      ) : activeView === 'staff' ? (
+        <StaffRegistry />
+      ) : activeView === 'students' ? (
+        <StudentRegistry />
+      ) : (
+        <RoleAssignment />
       )}
 
     </motion.div>
