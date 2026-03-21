@@ -8,14 +8,20 @@ import { useRole } from "@/contexts/RoleContext";
 import { Badge } from "@/components/ui/badge";
 
 export function SeminarFeedback() {
-  const { user } = useRole();
+  const { user, isLoading: authLoading } = useRole();
   const [loading, setLoading] = useState(true);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [student, setStudent] = useState<any>(null);
 
   useEffect(() => {
-    if (user?.id) fetchEvaluations();
-  }, [user]);
+    if (!authLoading) {
+       if (user?.id) {
+          fetchEvaluations();
+       } else {
+          setLoading(false);
+       }
+    }
+  }, [user, authLoading]);
 
   const fetchEvaluations = async () => {
     setLoading(true);
