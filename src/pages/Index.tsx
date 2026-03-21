@@ -10,7 +10,7 @@ import { Fingerprint, Mail, Lock, User, UserPlus, LogIn, ArrowLeft } from "lucid
 import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
-export default function Login() {
+export default function ScholasticLoginGateway() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);

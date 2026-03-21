@@ -132,7 +132,7 @@ const ROLE_SPECIFIC_TITLES = {
   super_admin: "System Governance Portal",
 };
 
-export default function Index() {
+export default function DashboardCommandCenter() {
   const { currentRole, user } = useRole();
   const location = useLocation();
   const path = location.pathname;
