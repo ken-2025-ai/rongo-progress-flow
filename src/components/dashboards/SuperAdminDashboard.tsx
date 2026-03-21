@@ -6,7 +6,7 @@ import {
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { InstitutionalSetup } from "./InstitutionalSetup";
+import { AcademicStructure } from "./AcademicStructure";
 import { toast } from "sonner";
 
 export function SuperAdminDashboard() {
@@ -29,7 +29,7 @@ export function SuperAdminDashboard() {
           onClick={() => setActiveView('infrastructure')}
           className={`rounded-xl h-10 px-5 text-xs font-bold uppercase tracking-widest transition-all ${activeView === 'infrastructure' ? 'bg-secondary text-white shadow-lg shadow-secondary/20' : 'text-muted-foreground'}`}
         >
-          <Building2 size={14} className="mr-2" /> Institutional Setup
+          <Building2 size={14} className="mr-2" /> Institutional Architecture
         </Button>
       </div>
 
@@ -168,7 +168,7 @@ export function SuperAdminDashboard() {
           </div>
         </>
       ) : (
-        <InstitutionalSetup />
+        <AcademicStructure />
       )}
 
     </motion.div>
