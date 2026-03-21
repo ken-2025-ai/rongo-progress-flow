@@ -1,30 +1,26 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-
-const STAGES = [
-  "Department Seminar",
-  "School Seminar",
-  "PG Examination",
-  "Corrections Stage",
-  "Final Clearance",
-];
+import { PHASE_LABELS, getPhaseForStage } from "@/lib/pipeline";
 
 interface PipelineRailProps {
-  currentStage: number; // 0-indexed
+  currentStage: number | string; // stage index (1-based) or stage code
   completedStages?: number[];
 }
 
 export function PipelineRail({ currentStage, completedStages }: PipelineRailProps) {
-  const completed = completedStages || Array.from({ length: currentStage }, (_, i) => i);
+  const phaseIdx = typeof currentStage === "string"
+    ? getPhaseForStage(currentStage)
+    : Math.min(Math.max(0, (currentStage as number) - 1), PHASE_LABELS.length - 1);
+  const completed = completedStages ?? Array.from({ length: phaseIdx }, (_, i) => i);
 
   return (
     <div className="card-shadow rounded-lg bg-card p-5">
       <h3 className="label-uppercase text-muted-foreground mb-4">Progress</h3>
       <div className="flex items-center gap-0">
-        {STAGES.map((stage, i) => {
+        {PHASE_LABELS.map((stage, i) => {
           const isCompleted = completed.includes(i);
-          const isCurrent = i === currentStage;
-          const isFuture = i > currentStage;
+          const isCurrent = i === phaseIdx;
+          const isFuture = i > phaseIdx;
 
           return (
             <div key={stage} className="flex items-center flex-1 last:flex-none">
@@ -53,7 +49,7 @@ export function PipelineRail({ currentStage, completedStages }: PipelineRailProp
                 </span>
               </div>
               {/* Connector */}
-              {i < STAGES.length - 1 && (
+              {i < PHASE_LABELS.length - 1 && (
                 <div className={`flex-1 h-0.5 mx-1 ${
                   isCompleted ? "bg-primary" : "bg-muted"
                 }`} />

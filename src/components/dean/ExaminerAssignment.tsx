@@ -48,7 +48,7 @@ export function ExaminerAssignment() {
           programme:programme_id(name, department:department_id(name)),
           evaluations(evaluator_id, evaluation_type, recommendation)
         `)
-        .in('current_stage', ['VIVA_SCHEDULED', 'PG_EXAMINATION']);
+        .in('current_stage', ['PG_EXAMINATION', 'AWAITING_EXAMINER_REPORT', 'VIVA_SCHEDULED']);
 
       if (sErr) throw sErr;
 
@@ -57,7 +57,7 @@ export function ExaminerAssignment() {
       const { data: exData, error: exErr } = await supabase
         .from('users')
         .select('*')
-        .eq('role', 'panel'); // Panelists act as examiners in this context
+        .in('role', ['EXAMINER', 'SUPERVISOR', 'PG_DEAN']);
 
       if (exErr) throw exErr;
 
@@ -74,21 +74,25 @@ export function ExaminerAssignment() {
     if (!selectedCandidate) return;
     setAssigning(true);
     try {
-      // Create evaluation placeholder for the examiner
-      // @ts-ignore
-      const { error } = await supabase
-        .from('evaluations')
-        .insert({
-          student_id: selectedCandidate.id,
-          evaluator_id: exId,
-          evaluation_type: 'VIVA',
-          recommendation: 'PENDING',
-          comments: `EXAMINER_ASSIGNMENT: ${assignmentType} assigned by PG Dean (${user?.name})`
-        });
+      const examinerType = assignmentType === 'INDEPENDENT' ? 'EXTERNAL' : assignmentType;
+      const { error: assignErr } = await supabase.from('examiner_assignments').insert({
+        student_id: selectedCandidate.id,
+        examiner_id: exId,
+        examiner_type: examinerType,
+        assigned_by: user?.id,
+      });
+      if (assignErr) throw assignErr;
 
+      const { error } = await supabase.from('evaluations').insert({
+        student_id: selectedCandidate.id,
+        evaluator_id: exId,
+        evaluation_type: 'THESIS_REVIEW',
+        recommendation: 'PENDING',
+        comments: `${assignmentType} assigned by PG Dean`,
+      });
       if (error) throw error;
 
-      toast.success("Architectural Assignment Formalized", {
+      toast.success("Examiner assigned", {
         description: `${exName} has been officially locked as ${assignmentType} for ${selectedCandidate.user?.first_name}.`
       });
       setSelectedCandidate(null);

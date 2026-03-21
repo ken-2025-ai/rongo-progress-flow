@@ -6,20 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
 import { Badge } from "@/components/ui/badge";
-
-const STAGE_SEQUENCE = [
-  'DEPT_SEMINAR_PENDING',
-  'DEPT_SEMINAR_BOOKED',
-  'DEPT_SEMINAR_COMPLETED',
-  'SCHOOL_SEMINAR_PENDING',
-  'SCHOOL_SEMINAR_BOOKED',
-  'SCHOOL_SEMINAR_COMPLETED',
-  'THESIS_READINESS_CHECK',
-  'PG_EXAMINATION',
-  'VIVA_SCHEDULED',
-  'CORRECTIONS',
-  'COMPLETED'
-];
+import { STAGE_SEQUENCE } from "@/lib/pipeline";
 
 const JOURNEY_MAP = [
   {
@@ -45,10 +32,11 @@ const JOURNEY_MAP = [
   {
     phase: "Examination Level",
     label: "Global Academic Defense",
-    stages: ['THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'],
+    stages: ['THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'AWAITING_EXAMINER_REPORT', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'],
     actions: [
       { id: 'THESIS_READINESS_CHECK', text: "Final Thesis Integrity Audit" },
-      { id: 'PG_EXAMINATION', text: "External Examiner Assessment" },
+      { id: 'PG_EXAMINATION', text: "PG Dean Examination Approval" },
+      { id: 'AWAITING_EXAMINER_REPORT', text: "Internal & External Examiner Review" },
       { id: 'VIVA_SCHEDULED', text: "Viva-Voce Oral Defense" },
       { id: 'CORRECTIONS', text: "Final Scholastic Refinement" },
       { id: 'COMPLETED', text: "Institutional Degree Conferred" },
@@ -103,8 +91,7 @@ export function ResearchJourney() {
   };
 
   const getStageNumeric = (stage: string) => {
-    const sequence = ['DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'];
-    const idx = sequence.indexOf(stage);
+    const idx = STAGE_SEQUENCE.indexOf(stage);
     return idx === -1 ? 0 : idx + 1;
   };
 
@@ -132,7 +119,7 @@ export function ResearchJourney() {
                   <ShieldCheck size={14}/> Node Synchronized
                </Badge>
             </div>
-            <PipelineRail currentStage={getStageNumeric(student?.current_stage)} />
+            <PipelineRail currentStage={student?.current_stage ?? ""} />
          </div>
       </motion.div>
 

@@ -7,32 +7,9 @@ import { containerVariants, itemVariants } from "@/lib/animations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { STAGE_SEQUENCE, STAGE_LABELS } from "@/lib/pipeline";
 
-const STAGES = [
-  'DEPT_SEMINAR_PENDING',
-  'DEPT_SEMINAR_BOOKED',
-  'DEPT_SEMINAR_COMPLETED',
-  'SCHOOL_SEMINAR_PENDING',
-  'SCHOOL_SEMINAR_BOOKED',
-  'SCHOOL_SEMINAR_COMPLETED',
-  'PG_EXAMINATION',
-  'VIVA_SCHEDULED',
-  'CORRECTIONS',
-  'COMPLETED'
-];
-
-const STAGE_LABELS: Record<string, string> = {
-  'DEPT_SEMINAR_PENDING': 'Dept. Proposal',
-  'DEPT_SEMINAR_BOOKED': 'Dept. Scheduled',
-  'DEPT_SEMINAR_COMPLETED': 'Dept. Passed',
-  'SCHOOL_SEMINAR_PENDING': 'School Proposal',
-  'SCHOOL_SEMINAR_BOOKED': 'School Scheduled',
-  'SCHOOL_SEMINAR_COMPLETED': 'School Passed',
-  'PG_EXAMINATION': 'External Examination',
-  'VIVA_SCHEDULED': 'Viva-Voce Oral',
-  'CORRECTIONS': 'Final Refinement',
-  'COMPLETED': 'Institutional Clearance'
-};
+const STAGES = STAGE_SEQUENCE;
 
 export function WorkflowMonitor() {
   const [students, setStudents] = useState<any[]>([]);

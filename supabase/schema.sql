@@ -29,6 +29,10 @@ DO $$ BEGIN
   ALTER TYPE stage_code_type ADD VALUE 'SCHOOL_SEMINAR_BOOKED';
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
+DO $$ BEGIN
+  ALTER TYPE stage_code_type ADD VALUE 'AWAITING_EXAMINER_REPORT';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 DO $$ BEGIN
     CREATE TYPE status_code_type AS ENUM (
@@ -80,6 +84,14 @@ END $$;
 
 DO $$ BEGIN
   ALTER TYPE recommendation_enum ADD VALUE 'PENDING';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE recommendation_enum ADD VALUE 'VIVA_REQUIRED';
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE recommendation_enum ADD VALUE 'REPEAT_VIVA';
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
@@ -235,6 +247,21 @@ CREATE TABLE IF NOT EXISTS public.evaluations (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- EXAMINER ASSIGNMENTS (PG Dean assigns internal/external examiners)
+CREATE TABLE IF NOT EXISTS public.examiner_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  examiner_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  examiner_type TEXT NOT NULL CHECK (examiner_type IN ('INTERNAL', 'EXTERNAL')),
+  assigned_by UUID REFERENCES public.users(id),
+  assigned_at TIMESTAMPTZ DEFAULT NOW(),
+  report_submitted_at TIMESTAMPTZ,
+  UNIQUE (student_id, examiner_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_examiner_assignments_student ON public.examiner_assignments(student_id);
+CREATE INDEX IF NOT EXISTS idx_examiner_assignments_examiner ON public.examiner_assignments(examiner_id);
+
 -- Compatibility: older DBs used examiner_id; frontend expects evaluator_id.
 DO $$ BEGIN
   IF EXISTS (
@@ -356,6 +383,7 @@ ALTER TABLE public.seminar_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.thesis_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.corrections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.examiner_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_stage_history ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
@@ -435,6 +463,22 @@ CREATE POLICY "Super Admin Bypass Stage History" ON public.student_stage_history
   FOR ALL
   USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
   WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "Super Admin Bypass Examiner Assignments" ON public.examiner_assignments;
+CREATE POLICY "Super Admin Bypass Examiner Assignments" ON public.examiner_assignments
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users su WHERE su.id = auth.uid() AND su.role = 'SUPER_ADMIN'));
+
+DROP POLICY IF EXISTS "PG Dean manage examiner assignments" ON public.examiner_assignments;
+CREATE POLICY "PG Dean manage examiner assignments" ON public.examiner_assignments
+  FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'PG_DEAN'));
+
+DROP POLICY IF EXISTS "Examiners view own assignments" ON public.examiner_assignments;
+CREATE POLICY "Examiners view own assignments" ON public.examiner_assignments
+  FOR SELECT USING (examiner_id = auth.uid());
 
 -- ------------------------------------------------------------
 -- 9.2 users (names used in joins)
@@ -520,7 +564,7 @@ CREATE POLICY "Examiners view exam queue students" ON public.students
       FROM public.users u
       WHERE u.id = auth.uid()
         AND u.role = 'EXAMINER'
-        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'VIVA_SCHEDULED')
+        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'AWAITING_EXAMINER_REPORT', 'VIVA_SCHEDULED')
     )
   );
 
@@ -596,7 +640,7 @@ CREATE POLICY "Examiners update exam queue students stage" ON public.students
       FROM public.users u
       WHERE u.id = auth.uid()
         AND u.role = 'EXAMINER'
-        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'VIVA_SCHEDULED')
+        AND students.current_stage IN ('SCHOOL_SEMINAR_BOOKED', 'PG_EXAMINATION', 'AWAITING_EXAMINER_REPORT', 'VIVA_SCHEDULED')
     )
   )
   WITH CHECK (
@@ -1072,13 +1116,13 @@ CREATE POLICY "Staff insert stage history via triggers" ON public.student_stage_
             SELECT 1 FROM public.users u
             WHERE u.id = auth.uid()
               AND u.role = 'PG_DEAN'
-              AND s.current_stage IN ('THESIS_READINESS_CHECK','PG_EXAMINATION','VIVA_SCHEDULED','CORRECTIONS','COMPLETED')
+              AND s.current_stage IN ('THESIS_READINESS_CHECK','PG_EXAMINATION','AWAITING_EXAMINER_REPORT','VIVA_SCHEDULED','CORRECTIONS','COMPLETED')
           )
           OR EXISTS (
             SELECT 1 FROM public.users u
             WHERE u.id = auth.uid()
               AND u.role = 'EXAMINER'
-              AND s.current_stage IN ('SCHOOL_SEMINAR_BOOKED','PG_EXAMINATION','VIVA_SCHEDULED')
+              AND s.current_stage IN ('SCHOOL_SEMINAR_BOOKED','PG_EXAMINATION','AWAITING_EXAMINER_REPORT','VIVA_SCHEDULED')
           )
         )
     )
@@ -1104,6 +1148,77 @@ CREATE INDEX IF NOT EXISTS idx_evaluations_evaluator
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_thesis_submissions_student_version
   ON public.thesis_submissions (student_id, version_number);
+
+-- ============================================================
+-- State machine: validate stage transitions (NO SKIPPING)
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.validate_stage_transition()
+RETURNS TRIGGER AS $$
+DECLARE
+  valid_next stage_code_type[] := ARRAY[
+    'DEPT_SEMINAR_PENDING'::stage_code_type,
+    'DEPT_SEMINAR_BOOKED'::stage_code_type,
+    'DEPT_SEMINAR_COMPLETED'::stage_code_type,
+    'SCHOOL_SEMINAR_PENDING'::stage_code_type,
+    'SCHOOL_SEMINAR_BOOKED'::stage_code_type,
+    'SCHOOL_SEMINAR_COMPLETED'::stage_code_type,
+    'THESIS_READINESS_CHECK'::stage_code_type,
+    'PG_EXAMINATION'::stage_code_type,
+    'AWAITING_EXAMINER_REPORT'::stage_code_type,
+    'VIVA_SCHEDULED'::stage_code_type,
+    'CORRECTIONS'::stage_code_type,
+    'COMPLETED'::stage_code_type
+  ];
+  from_idx int;
+  to_idx int;
+BEGIN
+  IF NEW.current_stage = OLD.current_stage THEN RETURN NEW; END IF;
+
+  from_idx := array_position(valid_next, OLD.current_stage);
+  to_idx := array_position(valid_next, NEW.current_stage);
+
+  IF from_idx IS NULL OR to_idx IS NULL THEN
+    RAISE EXCEPTION 'Invalid stage: % or %', OLD.current_stage, NEW.current_stage;
+  END IF;
+
+  -- CORRECTIONS: can be entered from several stages
+  IF NEW.current_stage = 'CORRECTIONS'::stage_code_type THEN
+    IF OLD.current_stage IN ('DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'AWAITING_EXAMINER_REPORT', 'VIVA_SCHEDULED') THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+
+  -- From CORRECTIONS: can advance to various stages
+  IF OLD.current_stage = 'CORRECTIONS'::stage_code_type THEN
+    IF NEW.current_stage IN ('DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'COMPLETED', 'DEPT_SEMINAR_PENDING', 'SCHOOL_SEMINAR_PENDING') THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+
+  -- Repeat: go back to PENDING
+  IF NEW.current_stage IN ('DEPT_SEMINAR_PENDING'::stage_code_type, 'SCHOOL_SEMINAR_PENDING'::stage_code_type) THEN
+    IF OLD.current_stage IN ('DEPT_SEMINAR_BOOKED'::stage_code_type, 'DEPT_SEMINAR_COMPLETED'::stage_code_type, 'SCHOOL_SEMINAR_BOOKED'::stage_code_type, 'SCHOOL_SEMINAR_COMPLETED'::stage_code_type) THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+
+  -- Forward: one step, or PG_EXAMINATION -> VIVA_SCHEDULED (legacy)
+  IF to_idx > from_idx THEN
+    IF to_idx - from_idx = 1 THEN RETURN NEW; END IF;
+    IF OLD.current_stage = 'PG_EXAMINATION'::stage_code_type AND NEW.current_stage = 'VIVA_SCHEDULED'::stage_code_type THEN
+      RETURN NEW;
+    END IF;
+    RAISE EXCEPTION 'Stage skip forbidden: % -> %. Move one step at a time.', OLD.current_stage, NEW.current_stage;
+  END IF;
+
+  RAISE EXCEPTION 'Invalid transition: % -> %', OLD.current_stage, NEW.current_stage;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_validate_stage_transition ON public.students;
+CREATE TRIGGER trg_validate_stage_transition
+  BEFORE UPDATE OF current_stage ON public.students
+  FOR EACH ROW EXECUTE PROCEDURE public.validate_stage_transition();
 
 -- ============================================================
 -- student_stage_history logging trigger

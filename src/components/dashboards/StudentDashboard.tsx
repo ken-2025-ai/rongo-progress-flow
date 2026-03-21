@@ -11,6 +11,7 @@ import { useRole } from "@/contexts/RoleContext";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { Link } from "react-router-dom";
 import { PipelineRail } from "@/components/PipelineRail";
+import { STAGE_SEQUENCE } from "@/lib/pipeline";
 
 export function StudentDashboard() {
   const { user, isLoading: authLoading } = useRole();
@@ -48,9 +49,8 @@ export function StudentDashboard() {
         // @ts-ignore
         const { count: tCount } = await supabase.from('corrections').select('*', { count: 'exact', head: true }).eq('student_id', sData.id).eq('status', 'PENDING');
         
-        const sequence = ['DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'];
-        const progressIdx = sequence.indexOf(sData.current_stage);
-        const progressPct = Math.round(((progressIdx + 1) / sequence.length) * 100);
+        const progressIdx = STAGE_SEQUENCE.indexOf(sData.current_stage);
+        const progressPct = Math.round(((progressIdx + 1) / STAGE_SEQUENCE.length) * 100);
 
         setStats({
           events: eCount || 0,
@@ -66,8 +66,7 @@ export function StudentDashboard() {
   };
 
   const getStageNumeric = (stage: string) => {
-    const sequence = ['DEPT_SEMINAR_PENDING', 'DEPT_SEMINAR_COMPLETED', 'SCHOOL_SEMINAR_PENDING', 'SCHOOL_SEMINAR_COMPLETED', 'THESIS_READINESS_CHECK', 'PG_EXAMINATION', 'VIVA_SCHEDULED', 'CORRECTIONS', 'COMPLETED'];
-    const idx = sequence.indexOf(stage);
+    const idx = STAGE_SEQUENCE.indexOf(stage);
     return idx === -1 ? 0 : idx + 1;
   };
 
@@ -158,7 +157,7 @@ export function StudentDashboard() {
               <Badge className="bg-primary text-white font-black text-[10px] uppercase rounded-full px-4">{stats.progress}% SYNC</Badge>
            </div>
            <div className="card-shadow p-8 rounded-[40px] bg-card border border-border/60">
-              <PipelineRail currentStage={getStageNumeric(studentInfo?.current_stage)} />
+              <PipelineRail currentStage={studentInfo?.current_stage ?? ""} />
            </div>
            
            {/* System Executive Summary */}

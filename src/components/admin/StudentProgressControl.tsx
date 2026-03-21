@@ -20,21 +20,9 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/contexts/RoleContext";
+import { STAGE_SEQUENCE } from "@/lib/pipeline";
 
-// Full ordered pipeline stages
-const PIPELINE_STAGES = [
-  'DEPT_SEMINAR_PENDING',
-  'DEPT_SEMINAR_BOOKED',
-  'DEPT_SEMINAR_COMPLETED',
-  'SCHOOL_SEMINAR_PENDING',
-  'SCHOOL_SEMINAR_BOOKED',
-  'SCHOOL_SEMINAR_COMPLETED',
-  'THESIS_READINESS_CHECK',
-  'PG_EXAMINATION',
-  'VIVA_SCHEDULED',
-  'CORRECTIONS',
-  'COMPLETED'
-];
+const PIPELINE_STAGES = STAGE_SEQUENCE;
 
 const stageColor = (stage: string) => {
   if (stage === 'COMPLETED') return 'bg-success/10 text-success border-success/20';
