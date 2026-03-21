@@ -4,10 +4,14 @@ import { Building2, School, Plus, Trash2, ListTree, Loader2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRole } from "@/contexts/RoleContext";
+import { isSimulationDemoUser } from "@/lib/authGuards";
+import { formatSupabaseCallError } from "@/lib/supabaseErrors";
 
 export function InstitutionalSetup() {
+  const { user } = useRole();
   const [schools, setSchools] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   
@@ -22,13 +26,23 @@ export function InstitutionalSetup() {
   }, []);
 
   const fetchData = async () => {
-    // @ts-ignore
-    const { data: sData } = await supabase.from('schools').select('*').order('name');
-    // @ts-ignore
-    const { data: dData } = await supabase.from('departments').select('*, schools(name)').order('name');
-    
-    if (sData) setSchools(sData);
-    if (dData) setDepartments(dData);
+    try {
+      if (!isSupabaseConfigured) {
+        toast.error("Configuration Required", {
+          description: "Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.",
+        });
+        return;
+      }
+      // @ts-ignore
+      const { data: sData } = await supabase.from('schools').select('*').order('name');
+      // @ts-ignore
+      const { data: dData } = await supabase.from('departments').select('*, schools(name)').order('name');
+      
+      if (sData) setSchools(sData);
+      if (dData) setDepartments(dData);
+    } catch (err: unknown) {
+      toast.error("Load failed", { description: formatSupabaseCallError(err) });
+    }
   };
 
   const handleAddSchool = async (e: React.FormEvent) => {
@@ -37,6 +51,12 @@ export function InstitutionalSetup() {
 
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase is not configured (.env).");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error("Simulation login cannot write to the database. Use /system-admin with a real SUPER_ADMIN session.");
+      }
       // @ts-ignore
       const { error } = await supabase.from('schools').insert({ name: newSchoolName });
       if (error) throw error;
@@ -44,8 +64,8 @@ export function InstitutionalSetup() {
       toast.success("School Architecture Updated", { description: `${newSchoolName} has been recorded.` });
       setNewSchoolName("");
       fetchData();
-    } catch (err: any) {
-      toast.error("Operation Failed", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Operation Failed", { description: formatSupabaseCallError(err) });
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +80,12 @@ export function InstitutionalSetup() {
 
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase is not configured (.env).");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error("Simulation login cannot write to the database.");
+      }
       // @ts-ignore
       const { error } = await supabase.from('departments').insert({ 
         name: newDeptName, 
@@ -70,8 +96,8 @@ export function InstitutionalSetup() {
       toast.success("Branch Added", { description: `${newDeptName} successfully linked to school.` });
       setNewDeptName("");
       fetchData();
-    } catch (err: any) {
-      toast.error("Operation Failed", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Operation Failed", { description: formatSupabaseCallError(err) });
     } finally {
       setIsLoading(false);
     }
@@ -81,13 +107,16 @@ export function InstitutionalSetup() {
     if (!confirm(`Are you certain you wish to remove ${name} from the infrastructure? This may affect linked departments.`)) return;
     setDeletingId(id);
     try {
+      if (!isSupabaseConfigured || isSimulationDemoUser(user)) {
+        throw new Error("Configure Supabase and sign in with a real SUPER_ADMIN account.");
+      }
       // @ts-ignore
       const { error } = await supabase.from('schools').delete().eq('id', id);
       if (error) throw error;
       toast.success("School Node Removed", { description: "Institutional architecture updated." });
       fetchData();
-    } catch (err: any) {
-      toast.error("Operation Blocked", { description: "Cannot delete school: Active departments or students are mapped to it." });
+    } catch (err: unknown) {
+      toast.error("Operation Blocked", { description: formatSupabaseCallError(err) });
     } finally {
       setDeletingId(null);
     }
@@ -97,13 +126,16 @@ export function InstitutionalSetup() {
     if (!confirm(`Confirm decommissioning of ${name} department.`)) return;
     setDeletingId(id);
     try {
+      if (!isSupabaseConfigured || isSimulationDemoUser(user)) {
+        throw new Error("Configure Supabase and sign in with a real SUPER_ADMIN account.");
+      }
       // @ts-ignore
       const { error } = await supabase.from('departments').delete().eq('id', id);
       if (error) throw error;
       toast.success("Branch Decommissioned", { description: "Department removed from active registry." });
       fetchData();
-    } catch (err: any) {
-      toast.error("Operation Blocked", { description: "Cannot delete: Active programmes or students are linked." });
+    } catch (err: unknown) {
+      toast.error("Operation Blocked", { description: formatSupabaseCallError(err) });
     } finally {
       setDeletingId(null);
     }
@@ -184,6 +216,7 @@ export function InstitutionalSetup() {
                   className="h-10 bg-background flex-1"
                 />
                 <select 
+                  aria-label="Parent school for new department"
                   value={selectedSchoolId}
                   onChange={(e) => setSelectedSchoolId(e.target.value)}
                   className="flex h-10 w-48 rounded-md border border-input bg-background px-3 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-secondary/50"

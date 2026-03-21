@@ -8,8 +8,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRole } from "@/contexts/RoleContext";
+import { isSimulationDemoUser } from "@/lib/authGuards";
+import { formatSupabaseCallError } from "@/lib/supabaseErrors";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -20,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function AcademicStructure() {
+  const { user } = useRole();
   const [activeTab, setActiveTab] = useState("schools");
   const [schools, setSchools] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -43,6 +47,12 @@ export function AcademicStructure() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        toast.error("Configuration Required", {
+          description: "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.",
+        });
+        return;
+      }
       const { data: sData } = await supabase.from('schools').select('*').order('name');
       const { data: dData } = await supabase.from('departments').select('*, schools(name)').order('name');
       const { data: pData } = await supabase.from('programmes').select('*, department:department_id(name, schools(name))').order('name');
@@ -50,8 +60,10 @@ export function AcademicStructure() {
       if (sData) setSchools(sData);
       if (dData) setDepartments(dData);
       if (pData) setProgrammes(pData);
-    } catch (err: any) {
-      toast.error("Initialization Failed", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Initialization Failed", {
+        description: formatSupabaseCallError(err),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -62,13 +74,21 @@ export function AcademicStructure() {
     if (!newSchoolName) return;
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase environment variables are missing. Update .env and restart the app.");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error(
+          "Simulation login has no database session. Configure Supabase and sign in at /system-admin with a user whose public.users.role is SUPER_ADMIN."
+        );
+      }
       const { error } = await supabase.from('schools').insert({ name: newSchoolName });
       if (error) throw error;
       toast.success("Institutional Node Active", { description: `${newSchoolName} has been established.` });
       setNewSchoolName("");
       fetchData();
-    } catch (err: any) {
-      toast.error("Deployment Error", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Deployment Error", { description: formatSupabaseCallError(err) });
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +99,14 @@ export function AcademicStructure() {
     if (!newDeptName || !selectedSchoolId) return;
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase environment variables are missing. Update .env and restart the app.");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error(
+          "Simulation login has no database session. Sign in with a real SUPER_ADMIN account."
+        );
+      }
        // @ts-ignore
       const { error } = await supabase.from('departments').insert({ 
         name: newDeptName, 
@@ -88,8 +116,8 @@ export function AcademicStructure() {
       toast.success("Department Online", { description: `${newDeptName} mapped to host school.` });
       setNewDeptName("");
       fetchData();
-    } catch (err: any) {
-      toast.error("Deployment Error", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Deployment Error", { description: formatSupabaseCallError(err) });
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +132,14 @@ export function AcademicStructure() {
 
     setIsLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase environment variables are missing. Update .env and restart the app.");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error(
+          "Simulation login has no database session. Sign in with a real SUPER_ADMIN account."
+        );
+      }
        // @ts-ignore
       const { error } = await supabase.from('programmes').insert({ 
         name: newProgName, 
@@ -116,8 +152,8 @@ export function AcademicStructure() {
       setNewProgName("");
       setNewProgCode("");
       fetchData();
-    } catch (err: any) {
-      toast.error("Deployment Error", { description: err.message });
+    } catch (err: unknown) {
+      toast.error("Deployment Error", { description: formatSupabaseCallError(err) });
     } finally {
       setIsLoading(false);
     }
@@ -127,12 +163,24 @@ export function AcademicStructure() {
     if (!confirm(`Are you certain you wish to decommission ${name}? This action is destructive.`)) return;
     
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error("Supabase is not configured.");
+      }
+      if (isSimulationDemoUser(user)) {
+        throw new Error("Simulation login cannot modify the database.");
+      }
       const { error } = await supabase.from(table).delete().eq('id', id);
       if (error) throw error;
       toast.success("Node Decommissioned", { description: `${name} removed from infrastructure.` });
       fetchData();
-    } catch (err: any) {
-      toast.error("Operation Denied", { description: "Dependency detected: Entity is likely linked to active records." });
+    } catch (err: unknown) {
+      const msg = formatSupabaseCallError(err);
+      toast.error("Operation Denied", {
+        description:
+          msg.includes("Simulation") || msg.includes("not configured")
+            ? msg
+            : "Dependency detected or permission denied: " + msg,
+      });
     }
   };
 
@@ -252,6 +300,7 @@ export function AcademicStructure() {
                          <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-white/40 tracking-widest ml-1">Parent Institution</label>
                             <select 
+                               aria-label="Parent institution"
                                className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-xs font-black appearance-none"
                                value={selectedSchoolId}
                                onChange={e => setSelectedSchoolId(e.target.value)}
@@ -275,6 +324,7 @@ export function AcademicStructure() {
                          <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-white/40 tracking-widest ml-1">Host Department</label>
                             <select 
+                               aria-label="Host department"
                                className="w-full bg-white/5 border border-white/10 text-white h-12 rounded-xl px-4 text-xs font-black appearance-none"
                                value={selectedDeptId}
                                onChange={e => setSelectedDeptId(e.target.value)}

@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Server, Mail, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { formatSupabaseCallError } from "@/lib/supabaseErrors";
 
 export default function SuperAdminLogin() {
   const [email, setEmail] = useState("");
@@ -18,25 +20,78 @@ export default function SuperAdminLogin() {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (email !== "kenkendagor3@gmail.com" || password !== "12345679") {
-      toast.error("Access Denied", {
-        description: "Invalid strictly governed Super Admin credentials.",
-      });
-      return;
-    }
-
     setIsLoading(true);
 
-    // Simulate encrypted login connection
-    setTimeout(() => {
+    try {
+      // Real Supabase session required: RLS policies use auth.uid() for SUPER_ADMIN writes.
+      if (isSupabaseConfigured) {
+        const { data, error: signError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (signError) {
+          toast.error("Authentication Failed", {
+            description: formatSupabaseCallError(signError),
+          });
+          return;
+        }
+
+        const userId = data.user?.id;
+        if (!userId) {
+          await supabase.auth.signOut();
+          toast.error("Session Error", { description: "No user id returned from auth." });
+          return;
+        }
+
+        const { data: row, error: roleErr } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (roleErr) {
+          await supabase.auth.signOut();
+          toast.error("Profile Check Failed", { description: formatSupabaseCallError(roleErr) });
+          return;
+        }
+
+        if (row?.role !== "SUPER_ADMIN") {
+          await supabase.auth.signOut();
+          toast.error("Not Authorized", {
+            description:
+              "This account is not SUPER_ADMIN in the database. Update public.users.role or use the correct operator account.",
+          });
+          return;
+        }
+
+        toast.success("Governance Access Granted", {
+          description: "Secure session established. Database operations are enabled.",
+        });
+        navigate("/");
+        return;
+      }
+
+      // Offline / no .env: legacy simulation only (no RLS writes possible)
+      if (email !== "kenkendagor3@gmail.com" || password !== "12345679") {
+        toast.error("Access Denied", {
+          description: "Invalid Super Admin credentials (simulation mode).",
+        });
+        return;
+      }
+
       login("super_admin");
-      toast.success("Governance Access Granted", {
-        description: "Welcome back, System Architect.",
+      toast.warning("Simulation Mode", {
+        description:
+          "Supabase is not configured. You can explore the UI only — set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then sign in with a real SUPER_ADMIN user.",
+        duration: 8000,
       });
       navigate("/");
+    } catch (err) {
+      toast.error("Login Error", { description: formatSupabaseCallError(err) });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
