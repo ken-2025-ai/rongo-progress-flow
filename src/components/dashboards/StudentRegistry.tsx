@@ -86,8 +86,13 @@ export function StudentRegistry() {
     try {
       const [{ data: sData }, { data: stData }, { data: supData }] = await Promise.all([
         supabase.from('schools').select('*').order('name'),
-        supabase.from('students').select('*, user:user_id(first_name, last_name, email), programme:programme_id(name, code, department:department_id(name, schools(name))), supervisor:supervisor_id(first_name, last_name)').order('created_at', { ascending: false }),
-        supabase.from('users').select('*').eq('role', 'SUPERVISOR').order('first_name')
+        supabase.from('students').select(`
+          *,
+          user:users!students_user_id_fkey(first_name, last_name, email),
+          programme:programmes(name, code, department:departments(name, school:schools(name))),
+          supervisor:users!students_supervisor_id_fkey(first_name, last_name)
+        `).order('created_at', { ascending: false }),
+        supabase.from('users').select('*').in('role', ['SUPERVISOR', 'DEPT_COORDINATOR', 'SCHOOL_COORDINATOR', 'PG_DEAN']).order('first_name')
       ]);
       
       if (sData) setSchools(sData);
@@ -129,13 +134,13 @@ export function StudentRegistry() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // @ts-ignore
         const { error: studentError } = await supabase.from('students').insert({
           user_id: authData.user.id,
           registration_number: admissionNumber,
           programme_id: selectedProgId,
           supervisor_id: selectedSupervisorId || null,
-          current_stage: 'DEPT_SEMINAR_PENDING'
+          current_stage: 'DEPT_SEMINAR_PENDING',
+          intake_year: parseInt(intakeYear) || new Date().getFullYear()
         });
 
         if (studentError) throw studentError;
@@ -158,7 +163,6 @@ export function StudentRegistry() {
     if (!selectedStudentForSupervisor) return;
     setIsAssigning(true);
     try {
-      // @ts-ignore
       const { error } = await supabase.from('students').update({ supervisor_id: supervisorId }).eq('id', selectedStudentForSupervisor.id);
       
       if (error) throw error;
