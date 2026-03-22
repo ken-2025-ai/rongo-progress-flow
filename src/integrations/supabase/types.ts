@@ -6,623 +6,70 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// =====================================================
+// ENUM TYPES
+// =====================================================
+
+export type UserRole = 
+  | 'STUDENT'
+  | 'SUPERVISOR'
+  | 'DEPT_COORDINATOR'
+  | 'SCHOOL_COORDINATOR'
+  | 'PG_DEAN'
+  | 'EXAMINER'
+  | 'SUPER_ADMIN'
+
+export type PipelineStage =
+  | 'DEPT_SEMINAR_PENDING'
+  | 'DEPT_SEMINAR_BOOKED'
+  | 'DEPT_SEMINAR_COMPLETED'
+  | 'SCHOOL_SEMINAR_PENDING'
+  | 'SCHOOL_SEMINAR_BOOKED'
+  | 'SCHOOL_SEMINAR_COMPLETED'
+  | 'THESIS_READINESS_CHECK'
+  | 'PG_EXAMINATION'
+  | 'AWAITING_EXAMINER_REPORT'
+  | 'VIVA_SCHEDULED'
+  | 'CORRECTIONS'
+  | 'COMPLETED'
+
+export type SeminarLevel = 'DEPT_SEMINAR' | 'SCHOOL_SEMINAR'
+
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+
+export type CorrectionStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED'
+
+export type EvaluationOutcome = 
+  | 'PASS'
+  | 'PASS_WITH_MINOR_CORRECTIONS'
+  | 'PASS_WITH_MAJOR_CORRECTIONS'
+  | 'RESUBMIT'
+  | 'FAIL'
+
+export type StudyLevel = 'MASTERS' | 'PHD'
+
+// =====================================================
+// DATABASE TYPE DEFINITIONS
+// =====================================================
+
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
-      departments: {
-        Row: {
-          created_at: string | null
-          id: string
-          name: string
-          school_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-          school_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          name?: string
-          school_id?: string
+
         }
         Relationships: [
           {
             foreignKeyName: "departments_school_id_fkey"
             columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notifications: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          message: string
-          title: string
-          type: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message: string
-          title: string
-          type?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          title?: string
-          type?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_initials: string
-          created_at: string
-          department: string | null
-          full_name: string
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_initials?: string
-          created_at?: string
-          department?: string | null
-          full_name?: string
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_initials?: string
-          created_at?: string
-          department?: string | null
-          full_name?: string
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      programmes: {
-        Row: {
-          code: string
-          department_id: string
-          id: string
-          name: string
-        }
-        Insert: {
-          code: string
-          department_id: string
-          id?: string
-          name: string
-        }
-        Update: {
-          code?: string
-          department_id?: string
-          id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "programmes_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      progress_reports: {
-        Row: {
-          created_at: string | null
-          file_url: string
-          id: string
-          quarter: string
-          status: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          synopsis: string | null
-          year: string
-        }
-        Insert: {
-          created_at?: string | null
-          file_url: string
-          id?: string
-          quarter: string
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          synopsis?: string | null
-          year: string
-        }
-        Update: {
-          created_at?: string | null
-          file_url?: string
-          id?: string
-          quarter?: string
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id?: string
-          synopsis?: string | null
-          year?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "progress_reports_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schools: {
-        Row: {
-          created_at: string | null
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      seminar_bookings: {
-        Row: {
-          approved_by: string | null
-          approved_date: string | null
-          created_at: string | null
-          id: string
-          panel_members: Json | null
-          requested_date: string
-          seminar_level: string
-          status: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          venue: string | null
-        }
-        Insert: {
-          approved_by?: string | null
-          approved_date?: string | null
-          created_at?: string | null
-          id?: string
-          panel_members?: Json | null
-          requested_date: string
-          seminar_level: string
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          venue?: string | null
-        }
-        Update: {
-          approved_by?: string | null
-          approved_date?: string | null
-          created_at?: string | null
-          id?: string
-          panel_members?: Json | null
-          requested_date?: string
-          seminar_level?: string
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id?: string
-          venue?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "seminar_bookings_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
+
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "seminar_bookings_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_clearance_checklist: {
-        Row: {
-          dean_cleared: boolean | null
-          department_cleared: boolean | null
-          finance_cleared: boolean | null
-          id: string
-          student_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          dean_cleared?: boolean | null
-          department_cleared?: boolean | null
-          finance_cleared?: boolean | null
-          id?: string
-          student_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          dean_cleared?: boolean | null
-          department_cleared?: boolean | null
-          finance_cleared?: boolean | null
-          id?: string
-          student_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_clearance_checklist_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_financial_node: {
-        Row: {
-          balance_remaining: number | null
-          id: string
-          is_cleared_for_exam: boolean | null
-          student_id: string
-        }
-        Insert: {
-          balance_remaining?: number | null
-          id?: string
-          is_cleared_for_exam?: boolean | null
-          student_id: string
-        }
-        Update: {
-          balance_remaining?: number | null
-          id?: string
-          is_cleared_for_exam?: boolean | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_financial_node_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_parent_contacts: {
-        Row: {
-          alt_phone_number: string | null
-          created_at: string | null
-          guardian_email: string | null
-          guardian_name: string
-          id: string
-          phone_number: string
-          physical_address: string | null
-          relationship: string | null
-          student_id: string
-        }
-        Insert: {
-          alt_phone_number?: string | null
-          created_at?: string | null
-          guardian_email?: string | null
-          guardian_name: string
-          id?: string
-          phone_number: string
-          physical_address?: string | null
-          relationship?: string | null
-          student_id: string
-        }
-        Update: {
-          alt_phone_number?: string | null
-          created_at?: string | null
-          guardian_email?: string | null
-          guardian_name?: string
-          id?: string
-          phone_number?: string
-          physical_address?: string | null
-          relationship?: string | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_parent_contacts_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_stage_history: {
-        Row: {
-          changed_by: string | null
-          created_at: string | null
-          id: string
-          notes: string | null
-          stage_code: Database["public"]["Enums"]["stage_code_type"]
-          status_code: Database["public"]["Enums"]["status_code_type"]
-          student_id: string
-        }
-        Insert: {
-          changed_by?: string | null
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          stage_code: Database["public"]["Enums"]["stage_code_type"]
-          status_code: Database["public"]["Enums"]["status_code_type"]
-          student_id: string
-        }
-        Update: {
-          changed_by?: string | null
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          stage_code?: Database["public"]["Enums"]["stage_code_type"]
-          status_code?: Database["public"]["Enums"]["status_code_type"]
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_stage_history_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_stage_history_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      students: {
-        Row: {
-          created_at: string | null
-          current_stage: Database["public"]["Enums"]["stage_code_type"] | null
-          id: string
-          programme_id: string
-          registration_number: string
-          research_title: string | null
-          supervisor_id: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          current_stage?: Database["public"]["Enums"]["stage_code_type"] | null
-          id?: string
-          programme_id: string
-          registration_number: string
-          research_title?: string | null
-          supervisor_id?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          current_stage?: Database["public"]["Enums"]["stage_code_type"] | null
-          id?: string
-          programme_id?: string
-          registration_number?: string
-          research_title?: string | null
-          supervisor_id?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "students_programme_id_fkey"
-            columns: ["programme_id"]
-            isOneToOne: false
-            referencedRelation: "programmes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_supervisor_id_fkey"
-            columns: ["supervisor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      thesis_submissions: {
-        Row: {
-          created_at: string | null
-          file_name: string | null
-          file_url: string
-          id: string
-          institutional_feedback: string | null
-          locked_for_exam: boolean | null
-          similarity_index: number | null
-          status: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          submission_level: string | null
-          version_number: number
-        }
-        Insert: {
-          created_at?: string | null
-          file_name?: string | null
-          file_url: string
-          id?: string
-          institutional_feedback?: string | null
-          locked_for_exam?: boolean | null
-          similarity_index?: number | null
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id: string
-          submission_level?: string | null
-          version_number: number
-        }
-        Update: {
-          created_at?: string | null
-          file_name?: string | null
-          file_url?: string
-          id?: string
-          institutional_feedback?: string | null
-          locked_for_exam?: boolean | null
-          similarity_index?: number | null
-          status?: Database["public"]["Enums"]["status_code_type"] | null
-          student_id?: string
-          submission_level?: string | null
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "thesis_submissions_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-      users: {
-        Row: {
-          created_at: string | null
-          department_id: string | null
-          email: string
-          first_name: string | null
-          id: string
-          is_active: boolean | null
-          is_examiner: boolean | null
-          last_name: string | null
-          role: Database["public"]["Enums"]["role_type"]
-          staff_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          department_id?: string | null
-          email: string
-          first_name?: string | null
-          id: string
-          is_active?: boolean | null
-          is_examiner?: boolean | null
-          last_name?: string | null
-          role?: Database["public"]["Enums"]["role_type"]
-          staff_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          department_id?: string | null
-          email?: string
-          first_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_examiner?: boolean | null
-          last_name?: string | null
-          role?: Database["public"]["Enums"]["role_type"]
-          staff_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      viva_voce_log: {
-        Row: {
-          created_at: string | null
-          examiners_present: Json | null
-          id: string
-          outcome: string | null
-          panel_chair_id: string | null
-          report_file_url: string | null
-          scheduled_date: string
-          status: string | null
-          student_id: string
-          venue: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          examiners_present?: Json | null
-          id?: string
-          outcome?: string | null
-          panel_chair_id?: string | null
-          report_file_url?: string | null
-          scheduled_date: string
-          status?: string | null
-          student_id: string
-          venue?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          examiners_present?: Json | null
-          id?: string
-          outcome?: string | null
-          panel_chair_id?: string | null
-          report_file_url?: string | null
-          scheduled_date?: string
-          status?: string | null
-          student_id?: string
-          venue?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "viva_voce_log_panel_chair_id_fkey"
-            columns: ["panel_chair_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "viva_voce_log_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
+
         ]
       }
     }
@@ -630,40 +77,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+<
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "student" | "supervisor" | "panel" | "admin" | "dean"
-      role_type:
-        | "STUDENT"
-        | "SUPERVISOR"
-        | "DEPT_COORDINATOR"
-        | "SCHOOL_COORDINATOR"
-        | "PG_DEAN"
-        | "EXAMINER"
-        | "SUPER_ADMIN"
-      stage_code_type:
-        | "DEPT_SEMINAR_PENDING"
-        | "DEPT_SEMINAR_COMPLETED"
-        | "SCHOOL_SEMINAR_PENDING"
-        | "SCHOOL_SEMINAR_COMPLETED"
-        | "THESIS_READINESS_CHECK"
-        | "PG_EXAMINATION"
-        | "VIVA_SCHEDULED"
-        | "CORRECTIONS"
-        | "COMPLETED"
-      status_code_type:
-        | "PENDING_SUPERVISOR"
-        | "PENDING_DEPT"
-        | "APPROVED"
-        | "RETURNED"
-        | "REJECTED"
+
     }
     CompositeTypes: {
       [_ in never]: never
@@ -671,8 +90,11 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+// =====================================================
+// TYPE HELPERS
+// =====================================================
 
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -788,37 +210,98 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+// =====================================================
+// CONVENIENCE TYPE ALIASES
+// =====================================================
+
+export type School = Tables<'schools'>
+export type Department = Tables<'departments'>
+export type Programme = Tables<'programmes'>
+export type User = Tables<'users'>
+export type Student = Tables<'students'>
+export type ThesisSubmission = Tables<'thesis_submissions'>
+export type SeminarBooking = Tables<'seminar_bookings'>
+export type SeminarSession = Tables<'seminar_sessions'>
+export type SeminarPanelMember = Tables<'seminar_panel_members'>
+export type Correction = Tables<'corrections'>
+export type SubmissionFeedback = Tables<'submission_feedback'>
+export type ExaminerAssignment = Tables<'examiner_assignments'>
+export type ExaminerReport = Tables<'examiner_reports'>
+export type VivaSession = Tables<'viva_sessions'>
+export type VivaPanelMember = Tables<'viva_panel_members'>
+export type ProgressReport = Tables<'progress_reports'>
+export type StageTransition = Tables<'stage_transitions'>
+export type Notification = Tables<'notifications'>
+export type ActivityLog = Tables<'activity_logs'>
+
+// Insert types
+export type SchoolInsert = TablesInsert<'schools'>
+export type DepartmentInsert = TablesInsert<'departments'>
+export type ProgrammeInsert = TablesInsert<'programmes'>
+export type UserInsert = TablesInsert<'users'>
+export type StudentInsert = TablesInsert<'students'>
+export type ThesisSubmissionInsert = TablesInsert<'thesis_submissions'>
+export type SeminarBookingInsert = TablesInsert<'seminar_bookings'>
+export type SeminarSessionInsert = TablesInsert<'seminar_sessions'>
+export type CorrectionInsert = TablesInsert<'corrections'>
+export type ExaminerAssignmentInsert = TablesInsert<'examiner_assignments'>
+export type VivaSessionInsert = TablesInsert<'viva_sessions'>
+export type NotificationInsert = TablesInsert<'notifications'>
+
+// Update types
+export type SchoolUpdate = TablesUpdate<'schools'>
+export type DepartmentUpdate = TablesUpdate<'departments'>
+export type ProgrammeUpdate = TablesUpdate<'programmes'>
+export type UserUpdate = TablesUpdate<'users'>
+export type StudentUpdate = TablesUpdate<'students'>
+export type SeminarBookingUpdate = TablesUpdate<'seminar_bookings'>
+export type CorrectionUpdate = TablesUpdate<'corrections'>
+export type VivaSessionUpdate = TablesUpdate<'viva_sessions'>
+
+// =====================================================
+// EXTENDED TYPES WITH RELATIONS
+// =====================================================
+
+export type StudentWithRelations = Student & {
+  user?: User
+  programme?: Programme & {
+    department?: Department & {
+      school?: School
+    }
+  }
+  supervisor?: User
+  co_supervisor?: User
+}
+
+export type DepartmentWithSchool = Department & {
+  school?: School
+}
+
+export type ProgrammeWithDepartment = Programme & {
+  department?: DepartmentWithSchool
+}
+
+export type SeminarBookingWithStudent = SeminarBooking & {
+  student?: StudentWithRelations
+  approved_by_user?: User
+}
+
+export type CorrectionWithRelations = Correction & {
+  student?: StudentWithRelations
+  assigned_by_user?: User
+  verified_by_user?: User
+}
+
+export type VivaSessionWithRelations = VivaSession & {
+  student?: StudentWithRelations
+  chair?: User
+  panel_members?: (VivaPanelMember & { member?: User })[]
+}
+
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "supervisor", "panel", "admin", "dean"],
-      role_type: [
-        "STUDENT",
-        "SUPERVISOR",
-        "DEPT_COORDINATOR",
-        "SCHOOL_COORDINATOR",
-        "PG_DEAN",
-        "EXAMINER",
-        "SUPER_ADMIN",
-      ],
-      stage_code_type: [
-        "DEPT_SEMINAR_PENDING",
-        "DEPT_SEMINAR_COMPLETED",
-        "SCHOOL_SEMINAR_PENDING",
-        "SCHOOL_SEMINAR_COMPLETED",
-        "THESIS_READINESS_CHECK",
-        "PG_EXAMINATION",
-        "VIVA_SCHEDULED",
-        "CORRECTIONS",
-        "COMPLETED",
-      ],
-      status_code_type: [
-        "PENDING_SUPERVISOR",
-        "PENDING_DEPT",
-        "APPROVED",
-        "RETURNED",
-        "REJECTED",
-      ],
+
     },
   },
 } as const

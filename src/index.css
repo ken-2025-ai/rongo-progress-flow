@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 96%;
+    --background: 218 63% 92%;
     --foreground: 210 20% 10%;
 
     --card: 0 0% 100%;
@@ -15,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 20% 10%;
 
-    --primary: 213 60% 45%;
+    --primary: 39 63% 46%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 42 53% 55%;
+    --secondary: 39 63% 46%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 10% 92%;
     --muted-foreground: 210 10% 40%;
 
-    --accent: 42 60% 50%;
+    --accent: 39 63% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -58,11 +58,11 @@
     --sidebar-muted: 213 40% 36%;
 
     /* Section header gold */
-    --section-header: 42 60% 50%;
+    --section-header: 39 63% 46%;
     --section-header-foreground: 0 0% 100%;
 
-    /* Topbar: clean gold */
-    --topbar: 42 55% 48%;
+    /* Topbar: Institutional Gold */
+    --topbar: 39 63% 46%;
     --topbar-foreground: 0 0% 100%;
   }
 }

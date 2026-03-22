@@ -1,33 +1,46 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
 
-export type UserRole = "student" | "supervisor" | "panel" | "admin" | "dean";
+
+export type UserRole = "student" | "supervisor" | "panel" | "admin" | "school_admin" | "dean" | "super_admin";
 
 interface RoleUser {
+  id?: string;
   name: string;
-  role: UserRole;
   avatar: string;
   department?: string;
+  department_id?: string;
+  email?: string;
+  roles: UserRole[]; // THE MASTER LIST
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  student: "Student",
+  student: "Scholar",
   supervisor: "Supervisor",
-  panel: "Panel Member",
-  admin: "Administrator",
+  panel: "Panelist",
+  admin: "Dept Coordinator",
+  school_admin: "School Admin",
   dean: "PG Dean",
+  super_admin: "System Administrator",
+};
+
+const DEMO_USERS: Record<UserRole, RoleUser> = {
+  student: { id: "demo-student-id", name: "Omondi Okech", avatar: "OO", department: "Computer Science", email: "ookech@students.rongo.ac.ke", roles: ["student"] },
+  supervisor: { id: "demo-supervisor-id", name: "Dr. Amina Wanjiku", avatar: "AW", department: "Computer Science", email: "awanjiku@rongo.ac.ke", roles: ["supervisor", "panel"] },
+  panel: { id: "demo-panel-id", name: "Prof. Kibet Langat", avatar: "KL", department: "Information Technology", email: "klangat@rongo.ac.ke", roles: ["panel", "supervisor"] },
+  admin: { id: "demo-admin-id", name: "Janet Achieng", avatar: "JA", department: "PG Administration", email: "jachieng@rongo.ac.ke", roles: ["admin", "supervisor", "panel"] },
+  school_admin: { id: "demo-school-id", name: "Prof. Oduor", avatar: "PO", department: "School Coordinator", email: "poduor@rongo.ac.ke", roles: ["school_admin", "supervisor", "panel"] },
+  dean: { id: "demo-dean-id", name: "Dr. Silas Nyabuto", avatar: "SN", department: "School of Postgraduate", email: "snyabuto@rongo.ac.ke", roles: ["dean", "supervisor", "panel"] },
+  super_admin: { id: "demo-super-admin-id", name: "Ken Dagor", avatar: "SA", department: "System Governance", email: "kenkendagor3@gmail.com", roles: ["super_admin", "dean", "admin", "student"] },
 };
 
 interface RoleContextType {
   currentRole: UserRole;
-  setCurrentRole: (role: UserRole) => void;
-  user: RoleUser;
+  user: RoleUser | null;
   roleLabel: string;
-  allRoles: UserRole[];
+  availableRoles: UserRole[];
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (role: UserRole) => void;
+  switchRole: (role: UserRole) => void;
   logout: () => void;
   authUser: User | null;
 }
@@ -35,79 +48,28 @@ interface RoleContextType {
 const RoleContext = createContext<RoleContextType | null>(null);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [authUser, setAuthUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentRole, setCurrentRole] = useState<UserRole>("student");
-  const [profile, setProfile] = useState<{ full_name: string; avatar_initials: string; department: string | null } | null>(null);
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setAuthUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Fetch profile and role
-        setTimeout(async () => {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("full_name, avatar_initials, department")
-            .eq("id", session.user.id)
-            .single();
-          
-          if (profileData) setProfile(profileData);
-
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", session.user.id)
-            .limit(1)
-            .single();
-
-          if (roleData) setCurrentRole(roleData.role as UserRole);
-          setIsLoading(false);
-        }, 0);
-      } else {
-        setProfile(null);
-        setIsLoading(false);
-      }
-    });
-
-    // Then check existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const login = (role: UserRole) => {
+    const demoUser = DEMO_USERS[role];
+    setAuthUser(demoUser);
     setCurrentRole(role);
+
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
-    setAuthUser(null);
-    setProfile(null);
-  };
 
-  const user: RoleUser = {
-    name: profile?.full_name || authUser?.user_metadata?.full_name || "User",
-    role: currentRole,
-    avatar: profile?.avatar_initials || "U",
-    department: profile?.department ?? undefined,
   };
 
   return (
     <RoleContext.Provider
       value={{
         currentRole,
-        setCurrentRole,
-        user,
-        roleLabel: ROLE_LABELS[currentRole],
-        allRoles: Object.keys(ROLE_LABELS) as UserRole[],
-        isAuthenticated: !!authUser,
+
         isLoading,
         login,
+        switchRole,
         logout,
         authUser,
       }}
