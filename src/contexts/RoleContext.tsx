@@ -103,12 +103,10 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = async (userId: string, email?: string) => {
     try {
       // 1. Get Base User Role
-      // @ts-ignore
       const { data: userDataRaw } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
       const userData = userDataRaw as any;
       
       // 2. Discovery: Is this user also a student?
-      // @ts-ignore
       const { data: studentDataRaw } = await supabase.from('students').select('id').eq('user_id', userId).maybeSingle();
       const studentData = studentDataRaw as any;
 
