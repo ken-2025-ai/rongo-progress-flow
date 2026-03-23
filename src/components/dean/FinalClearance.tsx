@@ -134,8 +134,8 @@ export function FinalClearance() {
           { label: "Cleared For Alumni", count: graduates.filter(g => g.current_stage === 'COMPLETED').length, color: "text-success", bg: "bg-success/5", icon: GraduationCap },
           { label: "Institutional Rate", count: "98.2%", color: "text-secondary", bg: "bg-secondary/5", icon: TrendingUp },
         ].map((stat, i) => (
-          <motion.div key={i} variants={itemVariants} className={`p-8 rounded-[36px] border-2 border-border/50 ${stat.bg} flex items-center gap-6 shadow-xl`}>
-             <div className={`h-16 w-16 rounded-2xl flex items-center justify-center ${stat.color} bg-card shadow-2xl`}>
+          <motion.div key={i} variants={itemVariants} className={`p-8 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-lg shadow-black/10 flex items-center gap-6`}>
+             <div className={`h-16 w-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-card/20 to-card/10 ${stat.color} shadow-2xl`}>
                 <stat.icon size={28} />
              </div>
              <div>
