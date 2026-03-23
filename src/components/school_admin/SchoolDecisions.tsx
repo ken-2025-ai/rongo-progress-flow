@@ -220,9 +220,9 @@ export function SchoolDecisions() {
           { label: "Refinement Orders", count: logs.filter(l => (l.recommendation || "").toLowerCase().includes("correction")).length, color: "text-status-warning", icon: AlertTriangle },
           { label: "Terminal Rejections", count: logs.filter(l => (l.recommendation || "").toLowerCase().includes("fail") || (l.recommendation || "").toLowerCase().includes("repeat")).length, color: "text-destructive", icon: X },
         ].map(stat => (
-          <motion.div key={stat.label} variants={itemVariants} className="bg-card border border-border/50 rounded-3xl p-6 shadow-sm group hover:border-primary/20 transition-all">
+          <motion.div key={stat.label} variants={itemVariants} className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-6 shadow-lg shadow-black/10 group hover:border-primary/20 transition-all">
             <div className="flex items-center gap-3 mb-4">
-               <div className={`p-1.5 rounded-lg ${stat.color} bg-current opacity-10`} />
+               <div className={`p-1.5 rounded-lg bg-gradient-to-br from-current/20 to-current/10 ${stat.color} opacity-10`} />
                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{stat.label}</p>
             </div>
             <div className="flex items-end justify-between">
