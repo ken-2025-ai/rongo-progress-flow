@@ -128,11 +128,11 @@ export function SupervisorDashboard() {
       {/* KPI Dynamic Console */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, i) => (
-          <motion.div key={i} variants={itemVariants} className="card-shadow rounded-[32px] bg-card p-7 border border-border shadow-sm flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all duration-500">
+          <motion.div key={i} variants={itemVariants} className="rounded-2xl bg-white/10 backdrop-blur-2xl p-7 border border-white/20 shadow-lg shadow-black/10 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all duration-500">
             <div className={`absolute -right-8 -top-8 p-10 opacity-0 group-hover:opacity-10 transition-opacity duration-700 ${kpi.color}`}>
                <kpi.icon size={120} />
             </div>
-            <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl ${kpi.bg} ${kpi.color}`}>
+            <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl bg-gradient-to-br ${kpi.bg.replace('bg-', 'from-').replace('/5', '/10')} ${kpi.bg.replace('/5', '/5')} ${kpi.color}`}>
               <kpi.icon size={28} />
             </div>
             <div>
