@@ -180,11 +180,11 @@ export function StudentDashboard() {
                     </div>
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-6 rounded-[32px] bg-white/10 backdrop-blur-md border border-white/10 text-center flex flex-col items-center justify-center min-w-[120px]">
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/20 text-center flex flex-col items-center justify-center min-w-[120px] shadow-lg shadow-black/10">
                        <span className="text-3xl font-black mb-1">{stats.events}</span>
                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Verified Events</span>
                     </div>
-                    <div className="p-6 rounded-[32px] bg-white/10 backdrop-blur-md border border-white/10 text-center flex flex-col items-center justify-center min-w-[120px]">
+                    <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/20 text-center flex flex-col items-center justify-center min-w-[120px] shadow-lg shadow-black/10">
                        <span className="text-3xl font-black mb-1 text-gold">{stats.tasks}</span>
                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Pending Fixes</span>
                     </div>
