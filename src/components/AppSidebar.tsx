@@ -123,7 +123,7 @@ export function AppSidebar({
     >
       {/* Logo Area - Scholastic White Transition */}
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 flex-shrink-0 bg-white shadow-sm z-50">
-        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 p-1 group-hover:scale-105 transition-transform">
+        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 p-1 group-hover:scale-105 transition-transform">
           <img src={rongoLogo} alt="Rongo University" className="h-8 w-8 shrink-0 object-contain" />
         </div>
         {(!collapsed || mobileMenuOpen) && (
