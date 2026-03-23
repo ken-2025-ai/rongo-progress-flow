@@ -204,7 +204,7 @@ export function DepartmentDecisions() {
           { label: "Corrections", count: logs.filter(l => (l.recommendation || "").toLowerCase().includes("correction")).length, color: "text-status-warning" },
           { label: "Fails / Repeats", count: logs.filter(l => (l.recommendation || "").toLowerCase().includes("fail") || (l.recommendation || "").toLowerCase().includes("repeat")).length, color: "text-destructive" },
         ].map(stat => (
-          <motion.div key={stat.label} variants={itemVariants} className="bg-card border border-border rounded-xl p-4">
+          <motion.div key={stat.label} variants={itemVariants} className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 shadow-lg shadow-black/10">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">{stat.label}</p>
             <p className={`text-3xl font-black mt-0.5 ${stat.color}`}>{stat.count}</p>
           </motion.div>
