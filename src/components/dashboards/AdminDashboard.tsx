@@ -200,8 +200,8 @@ export function AdminDashboard() {
               { label: "Seminar Influx", value: data.kpis.bookingsCount, icon: CalendarDays, color: "text-secondary", bg: "bg-secondary/5", border: "border-secondary/20" },
               { label: "Awaiting Verdict", value: data.kpis.reports, icon: FileBarChart, color: "text-success", bg: "bg-success/5", border: "border-success/20" },
             ].map((kpi, i) => (
-              <motion.div key={i} variants={item} className={`card-shadow rounded-[32px] bg-card p-8 border-2 ${kpi.border} shadow-sm flex items-start gap-6 hover:scale-[1.02] transition-transform duration-500 group`}>
-                <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] ${kpi.bg} ${kpi.color} shadow-inner group-hover:rotate-12 transition-transform`}>
+              <motion.div key={i} variants={item} className={`rounded-2xl bg-white/10 backdrop-blur-2xl p-8 border border-white/20 shadow-lg shadow-black/10 flex items-start gap-6 hover:scale-[1.02] transition-transform duration-500 group`}>
+                <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br ${kpi.bg.replace('bg-', 'from-').replace('/5', '/10')} ${kpi.bg.replace('/5', '/5')} ${kpi.color} shadow-inner group-hover:rotate-12 transition-transform`}>
                   <kpi.icon size={28} />
                 </div>
                 <div>

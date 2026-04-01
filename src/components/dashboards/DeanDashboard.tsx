@@ -135,11 +135,11 @@ export function DeanDashboard() {
           <motion.div key={i} variants={item}>
             {kpi.link ? (
                <Link to={kpi.link} className="block group">
-                  <div className={`card-shadow rounded-[36px] bg-card p-8 border-2 border-border/50 hover:border-primary/40 transition-all hover:scale-[1.03] shadow-lg relative overflow-hidden`}>
+                  <div className={`rounded-2xl bg-white/10 backdrop-blur-2xl p-8 border border-white/20 hover:border-primary/40 transition-all hover:scale-[1.03] shadow-lg shadow-black/10 relative overflow-hidden`}>
                      <div className={`absolute -right-6 -top-6 p-10 opacity-0 group-hover:opacity-10 transition-opacity duration-500 ${kpi.color}`}>
                         <kpi.icon size={100} />
                      </div>
-                     <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl ${kpi.bg} ${kpi.color} group-hover:rotate-12 transition-transform`}>
+                     <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl bg-gradient-to-br ${kpi.bg.replace('bg-', 'from-').replace('/5', '/10')} ${kpi.bg.replace('/5', '/5')} ${kpi.color} group-hover:rotate-12 transition-transform`}>
                         <kpi.icon size={28} />
                      </div>
                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{kpi.label}</p>
@@ -147,8 +147,8 @@ export function DeanDashboard() {
                   </div>
                </Link>
             ) : (
-               <div className={`card-shadow rounded-[36px] bg-card p-8 border-2 border-border/50 shadow-lg relative overflow-hidden`}>
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl ${kpi.bg} ${kpi.color}`}>
+               <div className={`rounded-2xl bg-white/10 backdrop-blur-2xl p-8 border border-white/20 shadow-lg shadow-black/10 relative overflow-hidden`}>
+                  <div className={`flex h-14 w-14 items-center justify-center rounded-[20px] mb-6 shadow-2xl bg-gradient-to-br ${kpi.bg.replace('bg-', 'from-').replace('/5', '/10')} ${kpi.bg.replace('/5', '/5')} ${kpi.color}`}>
                      <kpi.icon size={28} />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{kpi.label}</p>

@@ -6,42 +6,95 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// =====================================================
+// ENUM TYPES
+// =====================================================
+
+export type UserRole = 
+  | 'STUDENT'
+  | 'SUPERVISOR'
+  | 'DEPT_COORDINATOR'
+  | 'SCHOOL_COORDINATOR'
+  | 'PG_DEAN'
+  | 'EXAMINER'
+  | 'SUPER_ADMIN'
+
+export type PipelineStage =
+  | 'DEPT_SEMINAR_PENDING'
+  | 'DEPT_SEMINAR_BOOKED'
+  | 'DEPT_SEMINAR_COMPLETED'
+  | 'SCHOOL_SEMINAR_PENDING'
+  | 'SCHOOL_SEMINAR_BOOKED'
+  | 'SCHOOL_SEMINAR_COMPLETED'
+  | 'THESIS_READINESS_CHECK'
+  | 'PG_EXAMINATION'
+  | 'AWAITING_EXAMINER_REPORT'
+  | 'VIVA_SCHEDULED'
+  | 'CORRECTIONS'
+  | 'COMPLETED'
+
+export type SeminarLevel = 'DEPT_SEMINAR' | 'SCHOOL_SEMINAR'
+
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+
+export type CorrectionStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED'
+
+export type EvaluationOutcome = 
+  | 'PASS'
+  | 'PASS_WITH_MINOR_CORRECTIONS'
+  | 'PASS_WITH_MAJOR_CORRECTIONS'
+  | 'RESUBMIT'
+  | 'FAIL'
+
+export type StudyLevel = 'MASTERS' | 'PHD'
+
+// =====================================================
+// DATABASE TYPE DEFINITIONS
+// =====================================================
+
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
-      [_ in string]: {
-        Row: any;
-        Insert: any;
-        Update: any;
+
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_school_id_fkey"
+            columns: ["school_id"]
+
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+
+        ]
       }
     }
     Views: {
-      [_ in string]: {
-        Row: any;
-      }
+      [_ in never]: never
     }
     Functions: {
-      [_ in string]: {
-        Args: any;
-        Returns: any;
+<
+        Returns: boolean
       }
     }
     Enums: {
-      [_ in string]: any
+
     }
     CompositeTypes: {
-      [_ in string]: any
+      [_ in never]: never
     }
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+// =====================================================
+// TYPE HELPERS
+// =====================================================
 
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -157,8 +210,98 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+// =====================================================
+// CONVENIENCE TYPE ALIASES
+// =====================================================
+
+export type School = Tables<'schools'>
+export type Department = Tables<'departments'>
+export type Programme = Tables<'programmes'>
+export type User = Tables<'users'>
+export type Student = Tables<'students'>
+export type ThesisSubmission = Tables<'thesis_submissions'>
+export type SeminarBooking = Tables<'seminar_bookings'>
+export type SeminarSession = Tables<'seminar_sessions'>
+export type SeminarPanelMember = Tables<'seminar_panel_members'>
+export type Correction = Tables<'corrections'>
+export type SubmissionFeedback = Tables<'submission_feedback'>
+export type ExaminerAssignment = Tables<'examiner_assignments'>
+export type ExaminerReport = Tables<'examiner_reports'>
+export type VivaSession = Tables<'viva_sessions'>
+export type VivaPanelMember = Tables<'viva_panel_members'>
+export type ProgressReport = Tables<'progress_reports'>
+export type StageTransition = Tables<'stage_transitions'>
+export type Notification = Tables<'notifications'>
+export type ActivityLog = Tables<'activity_logs'>
+
+// Insert types
+export type SchoolInsert = TablesInsert<'schools'>
+export type DepartmentInsert = TablesInsert<'departments'>
+export type ProgrammeInsert = TablesInsert<'programmes'>
+export type UserInsert = TablesInsert<'users'>
+export type StudentInsert = TablesInsert<'students'>
+export type ThesisSubmissionInsert = TablesInsert<'thesis_submissions'>
+export type SeminarBookingInsert = TablesInsert<'seminar_bookings'>
+export type SeminarSessionInsert = TablesInsert<'seminar_sessions'>
+export type CorrectionInsert = TablesInsert<'corrections'>
+export type ExaminerAssignmentInsert = TablesInsert<'examiner_assignments'>
+export type VivaSessionInsert = TablesInsert<'viva_sessions'>
+export type NotificationInsert = TablesInsert<'notifications'>
+
+// Update types
+export type SchoolUpdate = TablesUpdate<'schools'>
+export type DepartmentUpdate = TablesUpdate<'departments'>
+export type ProgrammeUpdate = TablesUpdate<'programmes'>
+export type UserUpdate = TablesUpdate<'users'>
+export type StudentUpdate = TablesUpdate<'students'>
+export type SeminarBookingUpdate = TablesUpdate<'seminar_bookings'>
+export type CorrectionUpdate = TablesUpdate<'corrections'>
+export type VivaSessionUpdate = TablesUpdate<'viva_sessions'>
+
+// =====================================================
+// EXTENDED TYPES WITH RELATIONS
+// =====================================================
+
+export type StudentWithRelations = Student & {
+  user?: User
+  programme?: Programme & {
+    department?: Department & {
+      school?: School
+    }
+  }
+  supervisor?: User
+  co_supervisor?: User
+}
+
+export type DepartmentWithSchool = Department & {
+  school?: School
+}
+
+export type ProgrammeWithDepartment = Programme & {
+  department?: DepartmentWithSchool
+}
+
+export type SeminarBookingWithStudent = SeminarBooking & {
+  student?: StudentWithRelations
+  approved_by_user?: User
+}
+
+export type CorrectionWithRelations = Correction & {
+  student?: StudentWithRelations
+  assigned_by_user?: User
+  verified_by_user?: User
+}
+
+export type VivaSessionWithRelations = VivaSession & {
+  student?: StudentWithRelations
+  chair?: User
+  panel_members?: (VivaPanelMember & { member?: User })[]
+}
+
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+
+    },
   },
 } as const

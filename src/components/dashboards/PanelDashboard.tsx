@@ -98,11 +98,11 @@ export function PanelDashboard() {
       {/* KPI Console Overlay */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {kpis.map((kpi, i) => (
-          <motion.div key={i} variants={itemVariants} className="card-shadow rounded-[32px] bg-card p-8 border border-border shadow-sm flex flex-col justify-between group hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+          <motion.div key={i} variants={itemVariants} className="rounded-2xl bg-white/10 backdrop-blur-2xl p-8 border border-white/20 shadow-lg shadow-black/10 flex flex-col justify-between group hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
             <div className={`absolute -right-8 -top-8 p-12 opacity-0 group-hover:opacity-10 transition-opacity duration-700 ${kpi.color}`}>
                <kpi.icon size={130} />
             </div>
-            <div className={`flex h-16 w-16 items-center justify-center rounded-[20px] mb-8 shadow-2xl ${kpi.bg} ${kpi.color}`}>
+            <div className={`flex h-16 w-16 items-center justify-center rounded-[20px] mb-8 shadow-2xl bg-gradient-to-br ${kpi.bg.replace('bg-', 'from-').replace('/5', '/10')} ${kpi.bg.replace('/5', '/5')} ${kpi.color}`}>
               <kpi.icon size={32} />
             </div>
             <div>

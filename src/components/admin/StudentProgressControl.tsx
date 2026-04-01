@@ -176,7 +176,7 @@ export function StudentProgressControl() {
           { label: "In Corrections", count: students.filter(s => s.current_stage === 'CORRECTIONS').length, color: "text-destructive", bg: "bg-destructive/10" },
           { label: "Graduated", count: students.filter(s => s.current_stage === 'COMPLETED').length, color: "text-success", bg: "bg-success/10" },
         ].map(stat => (
-          <motion.div key={stat.label} variants={itemVariants} className={`p-4 rounded-xl border border-border ${stat.bg} flex items-center gap-4`}>
+          <motion.div key={stat.label} variants={itemVariants} className={`p-4 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-lg shadow-black/10 flex items-center gap-4 ${stat.bg}`}>
             <div>
               <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">{stat.label}</p>
               <p className={`text-3xl font-black mt-0.5 ${stat.color}`}>{stat.count}</p>

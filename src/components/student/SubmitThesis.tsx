@@ -116,7 +116,7 @@ export function SubmitThesis() {
         const fileName = `${student.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("thesis_payloads")
+          .from("thesis-documents")
           .upload(fileName, file, {
             cacheControl: "3600",
             upsert: false,
@@ -126,7 +126,7 @@ export function SubmitThesis() {
           const msg = uploadError.message || String(uploadError);
           if (msg.includes("Bucket not found") || msg.includes("not found")) {
             throw new Error(
-              "Storage bucket 'thesis_payloads' is not set up. Ask your admin to run the database migrations."
+              "Storage bucket 'thesis-documents' is not set up. Ask your admin to run the database migrations."
             );
           }
           if (msg.includes("policy") || msg.includes("denied") || msg.includes("403")) {
@@ -139,7 +139,7 @@ export function SubmitThesis() {
         if (!uploadData?.path) throw new Error("Upload succeeded but no path returned.");
 
         const { data: urlData } = supabase.storage
-          .from("thesis_payloads")
+          .from("thesis-documents")
           .getPublicUrl(uploadData.path);
         const fileUrl = urlData?.publicUrl ?? "";
 
